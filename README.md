@@ -37,16 +37,7 @@
       ├── jforgame-codec-api        --消息编解码API接口
       ├── jforgame-codec-protobuf   --protobuf实现
       ├── jforgame-codec-struct     --普通javabean，反射实现，启用高级版本可支持集合元素类型异构  
-  ├── jforgame-demo  --游戏基础组件以及业务逻辑模块  
-  |    ├──  cache包，使用guava cache库，用于支持系统的缓存框架    
-  |    ├──  db包，基于commons-persist和orm实现异步处理玩家及公共数据的持久化  
-  |    ├──  listener包，事件驱动模型  
-  |    ├──  doctor包，采用Groovy执行任意动态代码，或JDK的instrument机制修改类方法体 
-  |    ├──  cross包，跨服赛事的通信基础 
-  |    ├──  game/gm包，游戏内部金手指命令
-  |    ├──  game/admin包，游戏运营/运维后台命令  
-  |    ├──  tools包，简化项目开发的辅助小工具  
-  |    └──  utils包，各种工具类    
+  ├── jforgame-demo  --游戏业务示例  
   ```
 jforgame采用组件化的方式，每个模块都是一个独立的组件，用户可以根据自己的需求选择导入目标模块。 
 例如：如果只需要使用socket通信，那么只需要导入jforgame-socket-netty模块或者jforgame-socket-mina。

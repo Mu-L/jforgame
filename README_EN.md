@@ -40,15 +40,6 @@ jforgame
 ├── jforgame-codec-protobuf   -- Protobuf codec implementation
 ├── jforgame-codec-struct     -- Standard JavaBean reflection codec; advanced version supports heterogeneous collection element types
 ├── jforgame-demo  -- Demo of basic game components and business modules
-|    ├── cache -- Guava-based cache framework
-|    ├── db -- Async data persistence for player and global data based on commons-persist and ORM
-|    ├── listener -- Event-driven model
-|    ├── doctor -- Dynamic code execution via Groovy or JDK Instrumentation for class method modification
-|    ├── cross -- Basic communication foundation for cross-server matches/events
-|    ├── game/gm -- In-game GM command system
-|    ├── game/admin -- Operation & maintenance backend commands
-|    ├── tools -- Helper utilities to simplify development
-|    └── utils -- General utility classes
 ```
 
 jforgame follows a component-based design. Each module is independent, allowing developers to import only required components.For example, if only Socket communication is needed, simply introduce jforgame-socket-netty or jforgame-socket-mina.
