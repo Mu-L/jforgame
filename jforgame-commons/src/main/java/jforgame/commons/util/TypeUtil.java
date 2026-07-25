@@ -25,10 +25,7 @@ public class TypeUtil {
             return true;
         }
         // Check if it is a String type
-        if (clazz == String.class) {
-            return true;
-        }
-        return false;
+        return clazz == String.class;
     }
 
     /**
@@ -83,9 +80,6 @@ public class TypeUtil {
         if ((type.equals(Character.TYPE)) && ((value instanceof Character))) {
             return true;
         }
-        if ((type.equals(Boolean.TYPE)) && ((value instanceof Boolean))) {
-            return true;
-        }
-        return false;
+        return (type.equals(Boolean.TYPE)) && ((value instanceof Boolean));
     }
 }
