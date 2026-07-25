@@ -1,5 +1,6 @@
 package jforgame.orm.core;
 
+import jforgame.commons.util.NumberUtil;
 import jforgame.commons.util.TypeUtil;
 import jforgame.orm.converter.ConverterFactory;
 import jforgame.orm.converter.support.ObjectToJsonJpaConverter;
@@ -64,7 +65,8 @@ public class BeanProcessor {
     /**
      * Convert resultSet to entity bean.
      * If type is BaseEntity, {@link BaseEntity#afterLoad()} hook will be called automatically.
-     * @param rs jdbc ResultSet object
+     *
+     * @param rs   jdbc ResultSet object
      * @param type the type of instance to return
      */
     public <T> T toBean(ResultSet rs, Class<T> type)
@@ -80,7 +82,8 @@ public class BeanProcessor {
     /**
      * Convert resultSet to entity bean list.
      * If type is BaseEntity, {@link BaseEntity#afterLoad()} hook will be called automatically for each element.
-     * @param rs jdbc ResultSet object
+     *
+     * @param rs   jdbc ResultSet object
      * @param type the type of instance to return
      */
     public <T> List<T> toBeanList(ResultSet rs, Class<T> type)
@@ -127,49 +130,92 @@ public class BeanProcessor {
             throws SQLException {
         Method setter = prop.getWriteMethod();
         Class<?> clazzType = target.getClass();
-        if (setter == null) {
-            logger.info("Entity [{}] has no setter method for field [{}]", clazzType.getName(), prop.getName());
-            return;
-        }
-        Class<?>[] params = setter.getParameterTypes();
+
         try {
-            if ((value instanceof java.util.Date)) {
-                String targetType = params[0].getName();
-                if (java.sql.Date.class.getName().equals(targetType)) {
-                    value = new java.sql.Date(((java.util.Date) value).getTime());
-                } else if (java.sql.Time.class.getName().equals(targetType)) {
-                    value = new Time(((java.util.Date) value).getTime());
-                } else if (java.sql.Timestamp.class.getName().equals(targetType)) {
-                    Timestamp tsValue = (Timestamp) value;
-                    int nanos = tsValue.getNanos();
-                    value = new Timestamp(tsValue.getTime());
-                    ((Timestamp) value).setNanos(nanos);
+            Field field = findFieldInHierarchy(clazzType, prop.getName());
+            Class<?> targetType = field.getType();
+
+            // convert value to target type
+            value = convertValue(value, targetType, field);
+
+            if (setter != null) {
+                if (TypeUtil.isCompatibleType(value, setter.getParameterTypes()[0])) {
+                    setter.invoke(target, value);
+                } else {
+                    throw new SQLException("Cannot set " + prop.getName() + ": incompatible types");
                 }
-            } else if (((value instanceof String))) {
-                if (params[0].isEnum()) {
-                    @SuppressWarnings("rawtypes")
-                    Class c = params[0].asSubclass(Enum.class);
-                    value = Enum.valueOf(c, (String) value);
-                }
-                Field field = findFieldInHierarchy(clazzType, prop.getName());
-                // If not primitive type or String, auto convert
-                if (!TypeUtil.isPrimitiveOrString(field.getType())) {
-                    AttributeConverter convert = ConverterFactory.getAttributeConverter(ObjectToJsonJpaConverter.class);
-                    Convert annotation = field.getAnnotation(Convert.class);
-                    if (annotation != null) {
-                        convert = ConverterFactory.getAttributeConverter(annotation.converter());
-                    }
-                    value = convert.convertToEntityAttribute(value);
-                }
-            }
-            if (TypeUtil.isCompatibleType(value, params[0])) {
-                setter.invoke(target, value);
             } else {
-                throw new SQLException("Cannot set " + prop.getName() + ": incompatible types, cannot convert " + value.getClass().getName() + " to " + params[0].getName());
+                field.setAccessible(true);
+                field.set(target, value);
             }
+        } catch (NoSuchFieldException e) {
+            logger.info("Entity [{}] has no field [{}]", clazzType.getName(), prop.getName());
         } catch (Exception e) {
             throw new SQLException("Cannot set " + prop.getName() + ": " + e.getMessage());
         }
+    }
+
+    /**
+     * Convert value to target type, including date, enum
+     * if target type is String, convert to String using {@link AttributeConverter} if exists
+     */
+    private Object convertValue(Object value, Class<?> targetType, Field field) {
+        if (value == null || targetType == null) {
+            return value;
+        }
+
+        if (value instanceof java.util.Date) {
+            String targetTypeName = targetType.getName();
+            if (java.sql.Date.class.getName().equals(targetTypeName)) {
+                return new java.sql.Date(((java.util.Date) value).getTime());
+            } else if (java.sql.Time.class.getName().equals(targetTypeName)) {
+                return new Time(((java.util.Date) value).getTime());
+            } else if (java.sql.Timestamp.class.getName().equals(targetTypeName)) {
+                Timestamp tsValue = (Timestamp) value;
+                int nanos = tsValue.getNanos();
+                Timestamp result = new Timestamp(tsValue.getTime());
+                result.setNanos(nanos);
+                return result;
+            }
+        } else if (value instanceof String) {
+            if (targetType.isEnum()) {
+                @SuppressWarnings("rawtypes")
+                Class c = targetType.asSubclass(Enum.class);
+                return Enum.valueOf(c, (String) value);
+            }
+            if (field != null && !TypeUtil.isPrimitiveOrString(field.getType())) {
+                AttributeConverter convert = ConverterFactory.getAttributeConverter(ObjectToJsonJpaConverter.class);
+                Convert annotation = field.getAnnotation(Convert.class);
+                if (annotation != null) {
+                    convert = ConverterFactory.getAttributeConverter(annotation.converter());
+                }
+                return convert.convertToEntityAttribute(value);
+            }
+        }
+
+        if (targetType == int.class || targetType == Integer.class) {
+            return NumberUtil.intValue(value);
+        }
+        if (targetType == long.class || targetType == Long.class) {
+            return NumberUtil.longValue(value);
+        }
+        if (targetType == boolean.class || targetType == Boolean.class) {
+            return NumberUtil.booleanValue(value);
+        }
+        if (targetType == double.class || targetType == Double.class) {
+            return NumberUtil.doubleValue(value);
+        }
+        if (targetType == float.class || targetType == Float.class) {
+            return (float) NumberUtil.doubleValue(value);
+        }
+        if (targetType == short.class || targetType == Short.class) {
+            return NumberUtil.shortValue(value);
+        }
+        if (targetType == byte.class || targetType == Byte.class) {
+            return NumberUtil.byteValue(value);
+        }
+
+        return value;
     }
 
     private Field findFieldInHierarchy(Class<?> clazzType, String fieldName) throws NoSuchFieldException {
@@ -195,7 +241,7 @@ public class BeanProcessor {
 
     private PropertyDescriptor[] propertyDescriptors(Class<?> c)
             throws SQLException {
-        BeanInfo beanInfo = null;
+        BeanInfo beanInfo;
         try {
             beanInfo = Introspector.getBeanInfo(c);
         } catch (IntrospectionException e) {

@@ -398,6 +398,15 @@ BeanProcessor#toBean和toBeanList方法内部自动执行BaseEntity#afterLoad()�
 ### jforgame-orm
     去掉entity主键字段必须是基本类型包装类的限制
 
+### jforgame-codec-json
+    新增基于json的消息编解码工具
+
+## V4.1.0 
+
+### jforgame-orm
+    bean字段允许使用基本类型，不强迫使用包装类
+
+
 ## V5.0.0 api变动！！(计划)
 
 ### jforgame-codec-struct
