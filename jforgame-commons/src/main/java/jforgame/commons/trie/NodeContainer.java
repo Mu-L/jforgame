@@ -1,14 +1,16 @@
 package jforgame.commons.trie;
 
 
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
-import java.util.LinkedList;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 
 /**
  * Node container (contains all child nodes)
+ *
  * @since 2.4.0
  */
 interface NodeContainer {
@@ -88,7 +90,7 @@ class MapNodeContainer implements NodeContainer {
  */
 class ListNodeContainer implements NodeContainer {
 
-    private List<TrieNode> container = new LinkedList<>();
+    private List<TrieNode> container = new ArrayList<>();
 
     @Override
     public void add(TrieNode node) {
@@ -97,10 +99,12 @@ class ListNodeContainer implements NodeContainer {
 
     @Override
     public TrieNode remove(Character character) {
-        for (int i = 0; i < container.size(); i++) {
-            TrieNode node = container.get(i);
+        Iterator<TrieNode> iterator = container.iterator();
+        while (iterator.hasNext()) {
+            TrieNode node = iterator.next();
             if (character == node.val) {
-                return container.remove(i);
+                iterator.remove();
+                return node;
             }
         }
         return null;

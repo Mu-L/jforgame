@@ -405,6 +405,8 @@ BeanProcessor#toBean和toBeanList方法内部自动执行BaseEntity#afterLoad()�
 
 ### jforgame-orm
     bean字段允许使用基本类型，不强迫使用包装类
+### jforgame-commons
+    TrieDictionary改为线程安全
 
 
 ## V5.0.0 api变动！！(计划)
