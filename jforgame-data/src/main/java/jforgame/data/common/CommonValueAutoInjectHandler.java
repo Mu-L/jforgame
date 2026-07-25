@@ -13,7 +13,6 @@ import java.lang.reflect.Field;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.concurrent.atomic.AtomicBoolean;
 
 /**
  * Injects constants from the configuration table into fields annotated with {@link CommonConfig} in beans
@@ -87,13 +86,19 @@ public class CommonValueAutoInjectHandler implements InitializingBean {
     }
 
     private boolean needInject(Object bean) {
-        AtomicBoolean result = new AtomicBoolean(false);
-        ReflectionUtils.doWithFields(bean.getClass(), field -> {
-            if (field.getAnnotation(CommonConfig.class) != null) {
-                result.set(true);
+        if (bean == null) {
+            return false;
+        }
+        Class<?> clazz = bean.getClass();
+        while (clazz != Object.class) {
+            Field[] declaredFields = clazz.getDeclaredFields();
+            for (Field field : declaredFields) {
+                if (field.isAnnotationPresent(CommonConfig.class)) {
+                    return true;
+                }
             }
-        });
-
-        return result.get();
+            clazz = clazz.getSuperclass();
+        }
+        return false;
     }
 }
