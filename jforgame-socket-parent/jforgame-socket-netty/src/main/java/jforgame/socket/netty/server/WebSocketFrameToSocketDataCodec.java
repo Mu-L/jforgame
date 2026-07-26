@@ -139,6 +139,10 @@ public class WebSocketFrameToSocketDataCodec extends MessageToMessageCodec<WebSo
             byte[] body = new byte[bodySize];
             in.readBytes(body);
             Class<?> clazz = messageFactory.getMessage(NumberUtil.intValue(cmd));
+            if (clazz == null) {
+                logger.info("未识别的协议号:{}", cmd);
+                return;
+            }
             Object message = messageCodec.decode(clazz, body);
             RequestDataFrame requestDataFrame = new RequestDataFrame(headerMeta, message);
             out.add(requestDataFrame);

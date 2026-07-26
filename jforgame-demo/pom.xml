@@ -10,6 +10,10 @@
         <relativePath>../pom.xml</relativePath>
     </parent>
 
+    <properties>
+        <guava.version>33.0.0-jre</guava.version>
+    </properties>
+
     <artifactId>jforgame-demo</artifactId>
     <name>jforgame-demo</name>
     <packaging>jar</packaging>
@@ -96,9 +100,11 @@
         </dependency>
 
         <!-- 读取配置文件 -->
+        <!-- 读取配置文件 -->
         <dependency>
             <groupId>org.dom4j</groupId>
             <artifactId>dom4j</artifactId>
+            <version>${dom4j.version}</version>
         </dependency>
         <!-- 数据库相关 -->
         <dependency>
@@ -120,6 +126,7 @@
         <dependency>
             <groupId>com.google.guava</groupId>
             <artifactId>guava</artifactId>
+            <version>${guava.version}</version>
         </dependency>
 
         <!-- quartz job调度器 -->
@@ -184,7 +191,11 @@
             <version>3.25.7</version>
         </dependency>
 
-
+        <!--        <dependency>-->
+        <!--            <groupId>com.googlecode.concurrentlinkedhashmap</groupId>-->
+        <!--            <artifactId>concurrentlinkedhashmap-lru</artifactId>-->
+        <!--            <version>1.4.2</version>-->
+        <!--        </dependency>-->
 
     </dependencies>
     <build>
