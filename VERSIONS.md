@@ -405,9 +405,12 @@ BeanProcessor#toBean和toBeanList方法内部自动执行BaseEntity#afterLoad()�
 
 ### jforgame-orm
     bean字段允许使用基本类型，不强迫使用包装类
+
 ### jforgame-commons
     TrieDictionary改为线程安全
 
+### jforgame-socket-netty
+    websocket服务器支持自适应帧类型，frameType为0代表自动根据客户端上行编码类型选择编码方式
 
 ## V5.0.0 api变动！！(计划)
 

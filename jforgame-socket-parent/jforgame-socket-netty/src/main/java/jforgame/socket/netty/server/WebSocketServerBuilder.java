@@ -1,10 +1,10 @@
 package jforgame.socket.netty.server;
 
 import jforgame.codec.MessageCodec;
-import jforgame.socket.netty.ChannelIoHandler;
 import jforgame.socket.core.dispatch.ChainedMessageDispatcher;
 import jforgame.socket.core.net.HostAndPort;
 import jforgame.socket.core.protocol.message.MessageFactory;
+import jforgame.socket.netty.ChannelIoHandler;
 
 import java.io.File;
 
@@ -132,9 +132,12 @@ public class WebSocketServerBuilder {
     }
 
     /**
-     * Set websocket frame data type
+     * Set websocket outbound frame type
      *
-     * @param frameType frame data type, 0 - TEXT, 1 - BINARY
+     * @param frameType frame type rule:
+     *                  0 = adaptive mode, automatically match the format of client's first uplink business frame;
+     *                  1 = force all outbound messages to TextWebSocketFrame;
+     *                  2 = force all outbound messages to BinaryWebSocketFrame
      * @return this
      */
     public WebSocketServerBuilder setFrameType(int frameType) {
@@ -251,7 +254,6 @@ public class WebSocketServerBuilder {
         socketServer.messageIoHandler = new ChannelIoHandler(socketIoDispatcher);
         socketServer.socketIoDispatcher = socketIoDispatcher;
         socketServer.websocketPath = websocketPath;
-        socketServer.frameType = frameType;
         socketServer.idleMilliSeconds = idleMilliSeconds;
 
         return socketServer;

@@ -152,10 +152,11 @@ public class DataManager implements DataRepository {
             }
             try {
                 records = dataReader.read(resource.getInputStream(), definition.getClazz());
+                logger.info("loaded table {} with {} records", table, records.size());
             } catch (IOException e) {
                     if (table.equals(options.getCommonTableName())) {
                         // Allow projects to not use common table functionality
-                        logger.info("Common table configuration is empty");
+                        logger.error("loaded table {} failed", table);
                     } else {
                         throw new IllegalStateException(String.format("cannot read %s data file", table));
                     }
@@ -212,7 +213,7 @@ public class DataManager implements DataRepository {
     /**
      * Returns all loaded configuration domain classes
      *
-     * @return list of all loaded configuration classes
+     * @return set of all loaded configuration classes
      */
     public Set<Class> getAllTables() {
         return data.keySet();

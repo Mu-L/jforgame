@@ -67,11 +67,11 @@ public class WebSocketServer implements ServerNode {
     /**
      * websocket frame data type -- text frame
      */
-    public static int FRAME_TYPE_TEXT = 0;
+    public static int FRAME_TYPE_TEXT = 1;
     /**
      * websocket frame data type -- binary frame
      */
-    public static int FRAME_TYPE_BINARY = 1;
+    public static int FRAME_TYPE_BINARY = 2;
 
     /**
      * websocket frame data type

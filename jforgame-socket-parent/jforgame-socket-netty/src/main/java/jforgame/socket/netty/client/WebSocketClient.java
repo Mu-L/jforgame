@@ -20,13 +20,13 @@ import io.netty.handler.codec.http.websocketx.WebSocketVersion;
 import io.netty.handler.ssl.SslContext;
 import jforgame.codec.MessageCodec;
 import jforgame.socket.core.client.AbstractSocketClient;
-import jforgame.socket.netty.NSession;
-import jforgame.socket.netty.ChannelIoHandler;
-import jforgame.socket.netty.server.WebSocketFrameToSocketDataCodec;
-import jforgame.socket.core.net.HostAndPort;
-import jforgame.socket.core.session.IdSession;
 import jforgame.socket.core.dispatch.SocketIoDispatcher;
+import jforgame.socket.core.net.HostAndPort;
 import jforgame.socket.core.protocol.message.MessageFactory;
+import jforgame.socket.core.session.IdSession;
+import jforgame.socket.netty.ChannelIoHandler;
+import jforgame.socket.netty.NSession;
+import jforgame.socket.netty.server.WebSocketFrameToSocketDataCodec;
 
 import java.io.IOException;
 import java.net.URI;
@@ -49,20 +49,28 @@ public class WebSocketClient extends AbstractSocketClient {
     //  Record handshake failure cause
     private Throwable handshakeFailureCause;
 
-    public WebSocketClient(SocketIoDispatcher messageDispatcher, MessageFactory messageFactory,
-                           MessageCodec messageCodec, HostAndPort hostPort, String wsPath) {
+    private int frameType;
+
+    /**
+     *
+     * @param messageDispatcher
+     * @param messageFactory
+     * @param messageCodec
+     * @param frameType         1 text frame 2 binary frame
+     * @param hostPort
+     * @param wsPath
+     */
+    public WebSocketClient(SocketIoDispatcher messageDispatcher, MessageFactory messageFactory, MessageCodec messageCodec, int frameType, HostAndPort hostPort, String wsPath) {
         this.ioDispatcher = messageDispatcher;
         this.messageFactory = messageFactory;
         this.messageCodec = messageCodec;
         this.targetAddress = hostPort;
+        this.frameType = frameType;
         this.wsPath = wsPath;
     }
 
     public WebSocketClient(MessageFactory messageFactory, MessageCodec messageCodec, HostAndPort hostPort, String wsPath) {
-        this.messageFactory = messageFactory;
-        this.messageCodec = messageCodec;
-        this.targetAddress = hostPort;
-        this.wsPath = wsPath;
+        this(EMPTY_DISPATCHER, messageFactory, messageCodec, 1, hostPort, wsPath);
     }
 
     @Override
@@ -84,45 +92,36 @@ public class WebSocketClient extends AbstractSocketClient {
             // Create WebSocket URI
             URI websocketUri = new URI(scheme, null, host, port, path, null, null);
             Bootstrap b = new Bootstrap();
-            b.group(group)
-                    .channel(NioSocketChannel.class)
-                    .handler(new ChannelInitializer<SocketChannel>() {
-                        @Override
-                        protected void initChannel(SocketChannel ch) {
-                            ChannelPipeline pipeline = ch.pipeline();
+            b.group(group).channel(NioSocketChannel.class).handler(new ChannelInitializer<SocketChannel>() {
+                @Override
+                protected void initChannel(SocketChannel ch) {
+                    ChannelPipeline pipeline = ch.pipeline();
 
-                            // SSL handler (if needed, put at the front)
-                            if (sslContext != null) {
-                                pipeline.addLast(sslContext.newHandler(ch.alloc()));
-                            }
+                    // SSL handler (if needed, put at the front)
+                    if (sslContext != null) {
+                        pipeline.addLast(sslContext.newHandler(ch.alloc()));
+                    }
 
-                            // HTTP basic handler (WebSocket is based on HTTP handshake)
-                            pipeline.addLast(
-                                    new HttpClientCodec(),
-                                    new HttpObjectAggregator(512 * 1024)
-                            );
+                    // HTTP basic handler (WebSocket is based on HTTP handshake)
+                    pipeline.addLast(new HttpClientCodec(), new HttpObjectAggregator(512 * 1024));
 
-                            // WebSocket protocol handler (core, responsible for handshake and frame processing)
-                            WebSocketClientProtocolHandler wsHandler = new WebSocketClientProtocolHandler(
-                                    WebSocketClientHandshakerFactory.newHandshaker(
-                                            websocketUri, WebSocketVersion.V13, null, true, new DefaultHttpHeaders()
-                                    ),
-                                    true,  // Auto handle close frame
-                                    false, // Do not discard Pong frame
-                                    5000   // Handshake timeout in milliseconds
-                            );
-                            pipeline.addLast(wsHandler);
+                    // WebSocket protocol handler (core, responsible for handshake and frame processing)
+                    WebSocketClientProtocolHandler wsHandler = new WebSocketClientProtocolHandler(WebSocketClientHandshakerFactory.newHandshaker(websocketUri, WebSocketVersion.V13, null, true, new DefaultHttpHeaders()), true,  // Auto handle close frame
+                            false, // Do not discard Pong frame
+                            5000   // Handshake timeout in milliseconds
+                    );
+                    pipeline.addLast(wsHandler);
 
-                            // Add HandshakeCompletionListener to pipeline
-                            // Must be placed after WebSocketClientProtocolHandler to receive its HandshakeComplete event
-                            pipeline.addLast(new HandshakeCompletionListener());
+                    // Add HandshakeCompletionListener to pipeline
+                    // Must be placed after WebSocketClientProtocolHandler to receive its HandshakeComplete event
+                    pipeline.addLast(new HandshakeCompletionListener());
 
-                            // Business handler (codec, message dispatcher, etc., put at the end)
-                            pipeline.addLast(new WebSocketFrameToSocketDataCodec(messageCodec, messageFactory));
-                            pipeline.addLast((new CallbackHandler()));
-                            pipeline.addLast(new ChannelIoHandler(ioDispatcher));
-                        }
-                    });
+                    // Business handler (codec, message dispatcher, etc., put at the end)
+                    pipeline.addLast(new WebSocketFrameToSocketDataCodec(frameType, messageCodec, messageFactory));
+                    pipeline.addLast((new CallbackHandler()));
+                    pipeline.addLast(new ChannelIoHandler(ioDispatcher));
+                }
+            });
             ChannelFuture connectFuture = b.connect(host, port).sync();
             Channel channel = connectFuture.channel();
             // Subsequent connection, wait for handshake and other logic (omitted)
@@ -184,8 +183,7 @@ public class WebSocketClient extends AbstractSocketClient {
                     case HANDSHAKE_TIMEOUT:
                         // Handshake timeout (mark failure, release lock)
                         handshakeSuccess = false;
-                        handshakeFailureCause = new IOException(
-                                "WebSocket handshake timeout");
+                        handshakeFailureCause = new IOException("WebSocket handshake timeout");
                         handshakeLatch.countDown();
                         break;
                 }

@@ -59,7 +59,7 @@ public class OrmTemplate {
              PreparedStatement statement = connection.prepareStatement(sql)) {
             statement.setObject(1, id);
             try (ResultSet resultSet = statement.executeQuery()) {
-                while (resultSet.next()) {
+                if (resultSet.next()) {
                     return new BeanProcessor(bridge.getColumnToPropertyOverride()).toBean(resultSet, entity);
                 }
             }
@@ -118,7 +118,7 @@ public class OrmTemplate {
              ResultSet rs = statement.executeQuery(sql)) {
 
             ResultSetMetaData rsmd = rs.getMetaData();
-            while (rs.next()) {
+            if (rs.next()) {
                 int cols = rsmd.getColumnCount();
                 for (int i = 1; i <= cols; i++) {
                     String columnName = rsmd.getColumnLabel(i);
@@ -127,7 +127,6 @@ public class OrmTemplate {
                     }
                     result.put(columnName, rs.getObject(i));
                 }
-                break;
             }
         } catch (Exception e) {
             logger.error("OrmTemplate queryMap failed", e);
