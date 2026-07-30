@@ -8,15 +8,11 @@ import jforgame.commons.persist.SavingStrategy;
 import jforgame.demo.game.database.user.PlayerEnt;
 import jforgame.demo.game.logger.LoggerUtils;
 import jforgame.orm.entity.BaseEntity;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 /**
  * 用户数据异步持久化的服务
  */
 public class AsyncDbService implements DbService {
-
-    private static Logger logger = LoggerFactory.getLogger(AsyncDbService.class);
 
     private static volatile AsyncDbService instance = new AsyncDbService();
 

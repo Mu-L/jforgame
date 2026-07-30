@@ -1,167 +1,121 @@
 package jforgame.demo;
 
-import jforgame.demo.utils.IpAddrUtil;
 import jforgame.demo.utils.XmlUtils;
 import org.simpleframework.xml.Element;
 import org.simpleframework.xml.Root;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.net.SocketException;
-
 @Root(name = "server")
 public class ServerConfig {
 
-	private Logger logger = LoggerFactory.getLogger(ServerConfig.class.getSimpleName());
+    private Logger logger = LoggerFactory.getLogger(ServerConfig.class.getSimpleName());
 
-	private static volatile ServerConfig instance;
+    private static volatile ServerConfig instance;
 
-	/** 内網ip地址 */
-	private String inetAddr;
-	/** 服务器id */
-	@Element(required = true)
-	private int serverId;
-	/** 服务器端口 */
-	@Element(required = true)
-	private int serverPort;
-	/** 客户端封包最大字节数 */
-	@Element(required = true)
-	private int maxReceiveBytes;
+    /**
+     * 服务器id
+     */
+    @Element(required = true)
+    private int serverId;
+    /**
+     * 服务器端口
+     */
+    @Element(required = true)
+    private int serverPort;
+    /**
+     * 客户端封包最大字节数
+     */
+    @Element(required = true)
+    private int maxReceiveBytes;
 
-	/** 后台管理端口 */
-	@Element(required = true)
-	private int adminPort;
-	/** 后台白名单模式 */
-	@Element(required = true)
-	private String whiteIps;
+    /**
+     * 本服是否為跨服
+     */
+    @Element(required = true)
+    private int fight;
+    /**
+     * 对外跨服端口
+     */
+    @Element(required = true)
+    private int crossPort;
 
-	private String[] whiteIpPattern;
+    private ServerConfig() {
+    }
 
-	/** 匹配服地址 */
-	@Element(required = true)
-	private String matchUrl;
-	/** 本服是否為跨服 */
-	@Element(required = true)
-	private int fight;
-	/** 对外跨服端口 */
-	@Element(required = true)
-	private int crossPort;
+    public static ServerConfig getInstance() {
+        if (instance != null) {
+            return instance;
+        }
+        synchronized (ServerConfig.class) {
+            if (instance == null) {
+                instance = XmlUtils.loadXmlConfig("server.xml", ServerConfig.class);
+                instance.init();
+            }
+        }
+        return instance;
+    }
 
-	@Element(required = true)
-	private FireWall fireWall;
+    private void init() {
+        logger.info("本服serverId为{}", this.serverId);
+    }
 
-	private ServerConfig() {
-	}
+    public int getServerId() {
+        return this.serverId;
+    }
 
-	public static ServerConfig getInstance() {
-		if (instance != null) {
-			return instance;
-		}
-		synchronized (ServerConfig.class) {
-			if (instance == null) {
-				instance = XmlUtils.loadXmlConfig("server.xml", ServerConfig.class);
-				instance.init();
-			}
-		}
-		return instance;
-	}
+    public int getServerPort() {
+        return this.serverPort;
+    }
 
-	private void init() {
-		String[] ips = whiteIps.split(";");
-		this.whiteIpPattern = new String[ips.length];
-		for (int i = 0; i < ips.length; i++) {
-			this.whiteIpPattern[i] = ips[i];
-		}
+    /**
+     * 该服为战斗服
+     *
+     * @return
+     */
+    public boolean isFight() {
+        return fight == 1;
+    }
 
-		try {
-			this.inetAddr = IpAddrUtil.getInnetIp();
-		} catch (SocketException e) {
-			throw new RuntimeException(e);
-		}
-		logger.info("本服serverId为{},后台端口为{}", this.serverId, this.adminPort);
-	}
+    /**
+     * 该服为匹配中心服
+     *
+     * @return
+     */
+    public boolean isCenter() {
+        return fight == 2;
+    }
 
-	public String getInetAddr() {
-		return inetAddr;
-	}
+    public int getCrossPort() {
+        return crossPort;
+    }
 
-	public void setInetAddr(String inetAddr) {
-		this.inetAddr = inetAddr;
-	}
+    public void setServerId(int serverId) {
+        this.serverId = serverId;
+    }
 
-	public int getServerId() {
-		return this.serverId;
-	}
+    public void setServerPort(int serverPort) {
+        this.serverPort = serverPort;
+    }
 
-	public int getServerPort() {
-		return this.serverPort;
-	}
+    public void setFight(int fight) {
+        this.fight = fight;
+    }
 
-	public int getHttpPort() {
-		return adminPort;
-	}
+    public void setCrossPort(int crossPort) {
+        this.crossPort = crossPort;
+    }
 
-	public String[] getWhiteIpPattern() {
-		return whiteIpPattern;
-	}
+    public int getMaxReceiveBytes() {
+        return maxReceiveBytes;
+    }
 
-	public void setWhiteIpPattern(String[] whiteIpPattern) {
-		this.whiteIpPattern = whiteIpPattern;
-	}
+    public void setMaxReceiveBytes(int maxReceiveBytes) {
+        this.maxReceiveBytes = maxReceiveBytes;
+    }
 
-	public String getMatchUrl() {
-		return matchUrl;
-	}
+    public String getMatchUrl() {
+        return "";
+    }
 
-	/**
-	 * 该服为战斗服
-	 * @return
-	 */
-	public boolean isFight() {
-		return fight == 1;
-	}
-
-	/**
-	 * 该服为匹配中心服
-	 * @return
-	 */
-	public boolean isCenter() {
-		return fight == 2;
-	}
-
-	public int getCrossPort() {
-		return crossPort;
-	}
-
-	public void setServerId(int serverId) {
-		this.serverId = serverId;
-	}
-
-	public void setServerPort(int serverPort) {
-		this.serverPort = serverPort;
-	}
-
-	public void setFight(int fight) {
-		this.fight = fight;
-	}
-
-	public void setCrossPort(int crossPort) {
-		this.crossPort = crossPort;
-	}
-
-	public int getMaxReceiveBytes() {
-		return maxReceiveBytes;
-	}
-
-	public void setMaxReceiveBytes(int maxReceiveBytes) {
-		this.maxReceiveBytes = maxReceiveBytes;
-	}
-
-	public FireWall getFireWall() {
-		return fireWall;
-	}
-
-	public void setFireWall(FireWall fireWall) {
-		this.fireWall = fireWall;
-	}
 }
