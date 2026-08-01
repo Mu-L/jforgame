@@ -43,11 +43,12 @@ public class WebSocketServerBuilder {
     private String keyPassword; // Private key password
 
     /**
-     * WebSocket frame data type, default is text format.
-     * 0 - TEXT
-     * 1 - BINARY
+     * WebSocket frame data type, default is auto-detect (server).
+     * 0 - AUTO (server auto-detect per client)
+     * 1 - TEXT (force text)
+     * 2 - BINARY (force binary)
      */
-    private int frameType = WebSocketFrameType.FRAME_TYPE_TEXT;
+    private int frameType = WebSocketFrameType.FRAME_TYPE_AUTO;
 
     /**
      * In the server side, the connection will be closed if it is idle for a certain period of time.
@@ -136,14 +137,20 @@ public class WebSocketServerBuilder {
      * Set websocket outbound frame type
      *
      * @param frameType frame type rule:
-     *                  0 = adaptive mode, automatically match the format of client's first uplink business frame;
-     *                  1 = force all outbound messages to TextWebSocketFrame;
-     *                  2 = force all outbound messages to BinaryWebSocketFrame
+     *                  {@link WebSocketFrameType#FRAME_TYPE_AUTO} (0) = adaptive mode (server),
+     *                  each client connection independently determines its encoding format
+     *                  based on the first uplink business frame;
+     *                  {@link WebSocketFrameType#FRAME_TYPE_TEXT} (1) = force all outbound messages
+     *                  to TextWebSocketFrame;
+     *                  {@link WebSocketFrameType#FRAME_TYPE_BINARY} (2) = force all outbound messages
+     *                  to BinaryWebSocketFrame
      * @return this
      */
     public WebSocketServerBuilder setFrameType(int frameType) {
-        if (frameType != WebSocketFrameType.FRAME_TYPE_TEXT && frameType != WebSocketFrameType.FRAME_TYPE_BINARY) {
-            throw new IllegalArgumentException("frameType must be 0 or 1");
+        if (frameType != WebSocketFrameType.FRAME_TYPE_AUTO
+                && frameType != WebSocketFrameType.FRAME_TYPE_TEXT
+                && frameType != WebSocketFrameType.FRAME_TYPE_BINARY) {
+            throw new IllegalArgumentException("frameType must be 0 (AUTO), 1 (TEXT) or 2 (BINARY)");
         }
         this.frameType = frameType;
         return this;
@@ -256,6 +263,7 @@ public class WebSocketServerBuilder {
         socketServer.socketIoDispatcher = socketIoDispatcher;
         socketServer.websocketPath = websocketPath;
         socketServer.idleMilliSeconds = idleMilliSeconds;
+        socketServer.frameType = frameType;
 
         return socketServer;
     }

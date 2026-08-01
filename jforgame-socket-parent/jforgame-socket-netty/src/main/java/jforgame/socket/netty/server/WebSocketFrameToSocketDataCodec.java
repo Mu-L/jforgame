@@ -34,12 +34,15 @@ import java.util.List;
  * Converts {@link WebSocketFrame} to {@link SocketDataFrame} or other types of messages.
  * <p>Frame selection rules controlled by member field frameType:</p>
  * <ul>
- * <li>frameType = 0: Adaptive mode. Downlink encoding format follows client's first uplink business frame.
- * The frame type is cached and locked in Channel attribute permanently. Ping/Pong/Close control frames will not change cached type.</li>
- * <li>frameType = {@link WebSocketFrameType#FRAME_TYPE_TEXT}: Force all outbound messages to TextWebSocketFrame, ignore Channel cached type and remote uplink content.</li>
- * <li>frameType = {@link WebSocketFrameType#FRAME_TYPE_BINARY}: Force all outbound messages to BinaryWebSocketFrame, ignore Channel cached type and remote uplink content.</li>
+ * <li>frameType = {@link WebSocketFrameType#FRAME_TYPE_AUTO}: Adaptive mode (server).
+ * Each client connection independently determines its encoding format based on the first uplink
+ * business frame. The detected type is cached in the Channel attribute and locked permanently.
+ * </li>
+ * <li>frameType = {@link WebSocketFrameType#FRAME_TYPE_TEXT}: Force all outbound messages to TextWebSocketFrame
+ * (client fixed text mode).</li>
+ * <li>frameType = {@link WebSocketFrameType#FRAME_TYPE_BINARY}: Force all outbound messages to BinaryWebSocketFrame
+ * (client fixed binary mode).</li>
  * </ul>
- * Single message custom frame mode has the highest priority, which overrides the global frameType configuration.
  */
 public class WebSocketFrameToSocketDataCodec extends MessageToMessageCodec<WebSocketFrame, Object> {
 
@@ -52,12 +55,12 @@ public class WebSocketFrameToSocketDataCodec extends MessageToMessageCodec<WebSo
     private static final int MIN_BUFF_THRESHOLD = 1024;
 
     /**
-     * Global websocket outbound frame control flag
-     * 0 = auto adapt based on client first business uplink frame
-     * 1 = force text frame
-     * 2 = force binary frame
+     * Global websocket outbound frame control flag (immutable after construction).
+     * 0 = auto adapt (server), each client independently based on first uplink frame
+     * 1 = force text frame (client)
+     * 2 = force binary frame (client)
      */
-    int frameType;
+    private final int frameType;
 
     // Encode buffer local cache
     private static final ThreadLocal<ByteBuf> smallBufferCache = ThreadLocal.withInitial(() -> ByteBufAllocator.DEFAULT.buffer(MIN_BUFF_THRESHOLD) // Use default pooled allocator, initial capacity 1KB
@@ -75,17 +78,31 @@ public class WebSocketFrameToSocketDataCodec extends MessageToMessageCodec<WebSo
         this.messageFactory = messageFactory;
     }
 
+    /**
+     * Resolve the actual outbound frame type for the given channel.
+     * <ul>
+     *   <li>If global frameType is AUTO (server mode): reads per-connection cached type from Channel attribute.
+     *       Falls back to TEXT if not yet determined (e.g. first response before any decode).</li>
+     *   <li>If global frameType is TEXT or BINARY (client mode): always returns the configured type.</li>
+     * </ul>
+     */
+    private int resolveFrameType(ChannelHandlerContext ctx) {
+        if (frameType == WebSocketFrameType.FRAME_TYPE_AUTO) {
+            Attribute<Integer> attr = ctx.channel().attr(CLIENT_WS_FRAME_TYPE);
+            Integer cached = attr.get();
+            return cached != null ? cached : WebSocketFrameType.FRAME_TYPE_TEXT;
+        }
+        return frameType;
+    }
+
     @Override
     protected void encode(ChannelHandlerContext ctx, Object o, List<Object> list) throws Exception {
         if (o instanceof SocketDataFrame) {
             SocketDataFrame socketDataFrame = (SocketDataFrame) o;
             Object message = socketDataFrame.getMessage();
-            if (ctx.channel().hasAttr(CLIENT_WS_FRAME_TYPE)) {
-                Attribute<Integer> frameTypeAttr = ctx.channel().attr(CLIENT_WS_FRAME_TYPE);
-                frameType = frameTypeAttr.get();
-            }
-            // Text format
-            if (frameType == WebSocketFrameType.FRAME_TYPE_TEXT) {
+            int actualFrameType = resolveFrameType(ctx);
+
+            if (actualFrameType == WebSocketFrameType.FRAME_TYPE_TEXT) {
                 String json = JsonUtil.object2String(message);
                 WebSocketJsonFrame frame = new WebSocketJsonFrame();
                 frame.index = socketDataFrame.getIndex();
@@ -136,20 +153,23 @@ public class WebSocketFrameToSocketDataCodec extends MessageToMessageCodec<WebSo
 
     @Override
     protected void decode(ChannelHandlerContext ctx, WebSocketFrame frame, List<Object> out) throws Exception {
+        // 分片续帧由WebSocketFrameAggregator全权合并，业务拒绝处理，直接跳过
+        if (frame instanceof ContinuationWebSocketFrame) {
+            return;
+        }
         if (frame instanceof CloseWebSocketFrame || frame instanceof PingWebSocketFrame || frame instanceof PongWebSocketFrame) {
             return;
         }
-        if (frameType == 0) {
+
+        // Server auto-detect mode: on first business frame, detect and lock the channel's frame type
+        if (frameType == WebSocketFrameType.FRAME_TYPE_AUTO) {
             Attribute<Integer> frameTypeAttr = ctx.channel().attr(CLIENT_WS_FRAME_TYPE);
             Integer existType = frameTypeAttr.get();
             // Only initialize frame type when channel attribute is empty, lock permanently after first assignment
             if (existType == null) {
-                // Identify frame type of current inbound message
                 if (frame instanceof TextWebSocketFrame) {
-                    // Record text type for the first valid business frame
                     frameTypeAttr.set(WebSocketFrameType.FRAME_TYPE_TEXT);
                 } else if (frame instanceof BinaryWebSocketFrame) {
-                    // Record binary type for the first valid business frame
                     frameTypeAttr.set(WebSocketFrameType.FRAME_TYPE_BINARY);
                 }
             }
