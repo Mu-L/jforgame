@@ -1,5 +1,8 @@
 package jforgame.commons.util;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import java.io.File;
 import java.io.IOException;
 import java.lang.annotation.Annotation;
@@ -13,9 +16,6 @@ import java.util.Set;
 import java.util.function.Predicate;
 import java.util.jar.JarEntry;
 import java.util.jar.JarFile;
-
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 /**
  * Class scanner
@@ -33,7 +33,7 @@ public final class ClassScanner {
      * Scans all class files under the directory
      *
      * @param scanPackage the root package path to search
-     * @return the list of all classes
+     * @return the set of all classes
      */
     public static Set<Class<?>> listClasses(String scanPackage) {
         return listClasses(scanPackage, EMPTY_FILTER);
@@ -55,7 +55,7 @@ public final class ClassScanner {
      * @param scanPackage the root package path to search
      * @param <A>         annotation type parameter, used to specify the annotation type to find
      * @param annotation  the target annotation type
-     * @return the list of all classes with the specified annotation
+     * @return the set of all classes with the specified annotation
      */
     public static <A extends Annotation> Set<Class<?>> listClassesWithAnnotation(String scanPackage, Class<A> annotation) {
         return listClasses(scanPackage, clazz -> clazz.getAnnotation(annotation) != null);

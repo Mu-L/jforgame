@@ -46,14 +46,7 @@ public class CronContainer implements PersistContainer {
         this.savingStrategy = savingStrategy;
         try {
             // Create Quartz scheduler instance and start
-            Properties props = new Properties();
-            props.put("org.quartz.scheduler.instanceName", "jforgame-cron-container-" + name);
-            props.put("org.quartz.threadPool.class", "org.quartz.simpl.SimpleThreadPool");
-            props.put("org.quartz.threadPool.threadCount", "1");
-            props.put("org.quartz.threadPool.threadPriority", "5");
-            props.put("org.quartz.jobStore.class", "org.quartz.simpl.RAMJobStore");
-            StdSchedulerFactory factory = new StdSchedulerFactory();
-            factory.initialize(props);
+            StdSchedulerFactory factory = getStdSchedulerFactory(name);
             scheduler = factory.getScheduler();
             scheduler.start();
 
@@ -73,6 +66,18 @@ public class CronContainer implements PersistContainer {
             logger.error("Failed to initialize scheduler for CronContainer [{}]", name, e);
             throw new RuntimeException("Failed to initialize scheduler", e);
         }
+    }
+
+    private static StdSchedulerFactory getStdSchedulerFactory(String name) throws SchedulerException {
+        Properties props = new Properties();
+        props.put("org.quartz.scheduler.instanceName", "jforgame-cron-container-" + name);
+        props.put("org.quartz.threadPool.class", "org.quartz.simpl.SimpleThreadPool");
+        props.put("org.quartz.threadPool.threadCount", "1");
+        props.put("org.quartz.threadPool.threadPriority", "5");
+        props.put("org.quartz.jobStore.class", "org.quartz.simpl.RAMJobStore");
+        StdSchedulerFactory factory = new StdSchedulerFactory();
+        factory.initialize(props);
+        return factory;
     }
 
     @Override

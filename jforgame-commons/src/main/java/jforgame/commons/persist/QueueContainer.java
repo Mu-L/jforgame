@@ -1,39 +1,41 @@
 package jforgame.commons.persist;
 
 
-import jforgame.commons.util.TimeUtil;
-import jforgame.commons.ds.ConcurrentHashSet;
 import jforgame.commons.thread.NamedThreadFactory;
+import jforgame.commons.util.TimeUtil;
 
 import java.util.ConcurrentModificationException;
-import java.util.Set;
+import java.util.Map;
 import java.util.concurrent.BlockingQueue;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.LinkedBlockingDeque;
 import java.util.concurrent.TimeUnit;
 
 /**
- * Persistence in queue form
+ * Persistence queue container supporting both in-process and out-of-process cache
+ * Queue only stores keys; Map caches the latest entity to avoid old reference issues
  */
 public class QueueContainer extends BasePersistContainer {
 
-    private final BlockingQueue<Entity<?>> queue = new LinkedBlockingDeque<>();
+    // Queue only stores entity unique keys
+    private final BlockingQueue<String> queue = new LinkedBlockingDeque<>();
 
     /**
-     * Current saving queue, deduplicated
+     * Key -> latest entity cache for deduplication & latest data fetch
+     * Compatible with Caffeine reused object and Redis brand-new entity object
      */
-    private final Set<String> savingQueue = new ConcurrentHashSet<>();
+    private final Map<String, Entity<?>> savingQueue = new ConcurrentHashMap<>();
 
     private static final NamedThreadFactory namedThreadFactory = new NamedThreadFactory("jforgame-persist-queue-service");
 
     /**
-     * Last error log print time
+     * Last error log timestamp for log throttling
      */
     private long lastErrorTime = 0;
 
     public QueueContainer(String name, SavingStrategy savingStrategy) {
         this.name = name;
         this.savingStrategy = savingStrategy;
-        // Start thread to run
         namedThreadFactory.newThread(this::run).start();
     }
 
@@ -41,62 +43,95 @@ public class QueueContainer extends BasePersistContainer {
     public void receive(Entity<?> entity) {
         String key = entity.getKey();
         if (!run.get()) {
-            // Shop is closed, sorry no service
-            logger.info("db closed, received entity: {}", key);
+            logger.info("db closed, received entity key: {}", key);
             return;
         }
-        if (!savingQueue.add(key)) {
-            return;
+
+        // Judge whether this key is newly added to the map
+        boolean isNewKey = savingQueue.putIfAbsent(key, entity) == null;
+        // Force overwrite to latest entity, cover old entity data
+        savingQueue.put(key, entity);
+        // Only add key to queue when first time entering map
+        if (isNewKey) {
+            queue.add(key);
         }
-        this.queue.add(entity);
     }
 
     private void run() {
         while (run.get()) {
-            Entity<?> entity = null;
+            String key = null;
             try {
-                entity = queue.poll(1, TimeUnit.SECONDS);
-                if (entity == null) {
+                key = queue.poll(1, TimeUnit.SECONDS);
+                if (key == null) {
                     continue;
                 }
-                savingQueue.remove(entity.getKey());
-                savingStrategy.doSave(entity);
+
+                // Fetch the newest entity cached
+                Entity<?> latestEntity = savingQueue.get(key);
+                if (latestEntity == null) {
+                    continue;
+                }
+
+                savingStrategy.doSave(latestEntity);
+                // Remove cache only if current key still maps to this entity
+                savingQueue.remove(key, latestEntity);
+
             } catch (ConcurrentModificationException e1) {
-                // Possibly concurrent error, put back into queue
-                if (entity != null) {
-                    receive(entity);
+                if (key != null) {
+                    // Re-enqueue key for retry
+                    queue.offer(key);
                 }
             } catch (InterruptedException e) {
                 Thread.currentThread().interrupt();
             } catch (Exception e) {
-                // Other exceptions, putting back into queue still can't solve the problem, problematic ones will still have problems
-                // Here needs a strong notification operation, for example notify developers to fix bug
-                if (entity != null) {
-                    receive(entity);
+                if (key != null) {
+                    queue.offer(key);
                 }
-                // Repeatedly putting into persistence queue can easily cause exception log explosion, control log frequency here
-                if (System.currentTimeMillis() - lastErrorTime > 5 * TimeUtil.MILLIS_PER_MINUTE) {
-                    lastErrorTime = System.currentTimeMillis();
-                    logger.error("save entity error, entity: {}, queue size: {}", entity, queue.size(), e);
+                // Control error log frequency (5 minutes interval)
+                long now = System.currentTimeMillis();
+                if (now - lastErrorTime > 5 * TimeUtil.MILLIS_PER_MINUTE) {
+                    lastErrorTime = now;
+                    logger.error("save entity error, key: {}, queue size: {}", key, queue.size(), e);
                 }
             }
         }
     }
 
+    /**
+     * Fast shutdown: block new requests, flush all remaining keys synchronously
+     */
     @Override
     protected void saveAllBeforeShutdown() {
-        Entity<?> ent;
-        while ((ent = queue.poll()) != null) {
+        run.set(false);
+        String key;
+        while ((key = queue.poll()) != null) {
+            Entity<?> entity = savingQueue.get(key);
+            if (entity == null) {
+                continue;
+            }
             try {
-                savingStrategy.doSave(ent);
+                savingStrategy.doSave(entity);
             } catch (Exception e) {
-                logger.error("save entity error, entity: {}", ent, e);
+                logger.error("shutdown persist fail, key:{}", key, e);
             }
         }
+        // Clear residual cache
+        savingQueue.clear();
     }
 
     @Override
     public int size() {
         return queue.size();
+    }
+
+    @Override
+    public String toString() {
+        return String.format(
+                "QueueContainer{name='%s', queuePendingKeys=%d, cachedEntityNum=%d, isRunning=%b}",
+                name,
+                queue.size(),
+                savingQueue.size(),
+                run.get()
+        );
     }
 }

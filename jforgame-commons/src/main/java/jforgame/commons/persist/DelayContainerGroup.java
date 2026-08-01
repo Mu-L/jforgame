@@ -6,17 +6,17 @@ import java.util.Arrays;
  * Persistence in queue group form
  * Combine several queue containers into a queue group, perform modulo operation based on entity id, similar to database table partitioning strategy
  */
-public class QueueContainerGroup extends BasePersistContainer {
+public class DelayContainerGroup extends BasePersistContainer {
 
     /**
      * Container group
      */
-    private QueueContainer[] group;
+    private DelayContainer[] group;
 
-    public QueueContainerGroup(String name, SavingStrategy savingStrategy, int workers) {
-        group = new QueueContainer[workers];
+    public DelayContainerGroup(String name, SavingStrategy savingStrategy, int workers, int delaySeconds) {
+        group = new DelayContainer[workers];
         for (int i = 0; i < workers; i++) {
-            QueueContainer work = new QueueContainer(name, savingStrategy);
+            DelayContainer work = new DelayContainer(name, delaySeconds, savingStrategy);
             group[i] = work;
         }
         this.name = name + "-group";
@@ -31,7 +31,7 @@ public class QueueContainerGroup extends BasePersistContainer {
     @Override
     public int size() {
         int size = 0;
-        for (QueueContainer queueContainer : group) {
+        for (DelayContainer queueContainer : group) {
             size += queueContainer.size();
         }
         return size;
@@ -39,7 +39,7 @@ public class QueueContainerGroup extends BasePersistContainer {
 
     @Override
     protected void saveAllBeforeShutdown() {
-        for (QueueContainer queueContainer : group) {
+        for (DelayContainer queueContainer : group) {
             queueContainer.saveAllBeforeShutdown();
         }
     }
@@ -47,7 +47,7 @@ public class QueueContainerGroup extends BasePersistContainer {
     @Override
     public String toString() {
         return String.format(
-                "QueueContainerGroup{groupName='%s', workerCount=%d, children=%s}",
+                "DelayContainerGroup{groupName='%s', workerCount=%d, children=%s}",
                 this.name,
                 group.length,
                 Arrays.toString(group)

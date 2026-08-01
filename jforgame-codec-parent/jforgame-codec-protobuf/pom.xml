@@ -24,7 +24,6 @@
         <dependency>
             <groupId>com.baidu</groupId>
             <artifactId>jprotobuf</artifactId>
-            <scope>provided</scope>
         </dependency>
         <dependency>
             <groupId>com.baidu</groupId>
