@@ -38,7 +38,7 @@ public class DispatchThreadModel implements ThreadModel {
      * @param workCapacity worker thread count
      */
     public DispatchThreadModel(int workCapacity) {
-        ThreadFactory threadFactory = new NamedThreadFactory("message-business");
+        ThreadFactory threadFactory = new NamedThreadFactory("jforgame-dispatch-system");
         workerPool = new Worker[workCapacity];
         for (int i = 0; i < workCapacity; i++) {
             Worker w = new Worker();

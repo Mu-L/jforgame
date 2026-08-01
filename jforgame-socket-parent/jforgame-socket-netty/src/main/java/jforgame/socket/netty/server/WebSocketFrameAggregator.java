@@ -14,7 +14,9 @@ import java.util.List;
 
 /**
  * WebSocket frame aggregator, handles large data requests, aggregates multiple frames from client into one complete frame
+ *
  * @since 2.4.0
+ * @deprecated
  */
 public class WebSocketFrameAggregator extends MessageToMessageDecoder<WebSocketFrame> {
     private final int maxFrameSize;

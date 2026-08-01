@@ -5,6 +5,7 @@ import jforgame.socket.core.dispatch.ChainedMessageDispatcher;
 import jforgame.socket.core.net.HostAndPort;
 import jforgame.socket.core.protocol.message.MessageFactory;
 import jforgame.socket.netty.ChannelIoHandler;
+import jforgame.socket.netty.WebSocketFrameType;
 
 import java.io.File;
 
@@ -46,7 +47,7 @@ public class WebSocketServerBuilder {
      * 0 - TEXT
      * 1 - BINARY
      */
-    private int frameType = WebSocketServer.FRAME_TYPE_TEXT;
+    private int frameType = WebSocketFrameType.FRAME_TYPE_TEXT;
 
     /**
      * In the server side, the connection will be closed if it is idle for a certain period of time.
@@ -141,7 +142,7 @@ public class WebSocketServerBuilder {
      * @return this
      */
     public WebSocketServerBuilder setFrameType(int frameType) {
-        if (frameType != WebSocketServer.FRAME_TYPE_TEXT && frameType != WebSocketServer.FRAME_TYPE_BINARY) {
+        if (frameType != WebSocketFrameType.FRAME_TYPE_TEXT && frameType != WebSocketFrameType.FRAME_TYPE_BINARY) {
             throw new IllegalArgumentException("frameType must be 0 or 1");
         }
         this.frameType = frameType;

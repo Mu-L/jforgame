@@ -1,7 +1,11 @@
 package jforgame.socket.netty.server;
 
 import io.netty.bootstrap.ServerBootstrap;
-import io.netty.channel.*;
+import io.netty.channel.ChannelHandlerContext;
+import io.netty.channel.ChannelInboundHandlerAdapter;
+import io.netty.channel.ChannelInitializer;
+import io.netty.channel.ChannelPipeline;
+import io.netty.channel.EventLoopGroup;
 import io.netty.channel.nio.NioEventLoopGroup;
 import io.netty.channel.socket.SocketChannel;
 import io.netty.channel.socket.nio.NioServerSocketChannel;
@@ -12,14 +16,13 @@ import io.netty.handler.codec.http.websocketx.BinaryWebSocketFrame;
 import io.netty.handler.codec.http.websocketx.TextWebSocketFrame;
 import io.netty.handler.codec.http.websocketx.WebSocketServerProtocolHandler;
 import io.netty.handler.ssl.SslContext;
-import io.netty.handler.stream.ChunkedWriteHandler;
 import io.netty.handler.timeout.IdleStateHandler;
 import jforgame.codec.MessageCodec;
-import jforgame.socket.netty.ChannelIoHandler;
-import jforgame.socket.core.server.ServerNode;
-import jforgame.socket.core.net.HostAndPort;
 import jforgame.socket.core.dispatch.SocketIoDispatcher;
+import jforgame.socket.core.net.HostAndPort;
 import jforgame.socket.core.protocol.message.MessageFactory;
+import jforgame.socket.core.server.ServerNode;
+import jforgame.socket.netty.ChannelIoHandler;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -65,15 +68,6 @@ public class WebSocketServer implements ServerNode {
     SslContext sslContext;
 
     /**
-     * websocket frame data type -- text frame
-     */
-    public static int FRAME_TYPE_TEXT = 1;
-    /**
-     * websocket frame data type -- binary frame
-     */
-    public static int FRAME_TYPE_BINARY = 2;
-
-    /**
      * websocket frame data type
      */
     int frameType;
@@ -111,26 +105,25 @@ public class WebSocketServer implements ServerNode {
                 pipeline.addLast("ssl", sslContext.newHandler(ch.alloc()));
             }
             pipeline.addLast("httpServerCodec", new HttpServerCodec());
-            pipeline.addLast("chunkedWriteHandler", new ChunkedWriteHandler());
             pipeline.addLast("httpObjectAggregator", new HttpObjectAggregator(64 * 1024));
             // Normalize ws url, filter parameters after ?
-            pipeline.addLast("normalizationUrl", new ChannelDuplexHandler() {
+            pipeline.addLast("normalizationUrl", new ChannelInboundHandlerAdapter() {
                 @Override
                 public void channelRead(ChannelHandlerContext ctx, Object msg) throws Exception {
                     if (msg instanceof FullHttpRequest) {
                         FullHttpRequest req = (FullHttpRequest) msg;
-                        String uri = req.uri();
-                        int idx = uri.indexOf('?');
-                        if (idx > 0) {
-                            req.setUri(uri.substring(0, idx));
+                        int queryIndex = req.uri().indexOf('?');
+                        if (queryIndex > 0) {
+                            req.setUri(req.uri().substring(0, queryIndex));
                         }
                     }
-                    super.channelRead(ctx, msg);
+                    ctx.fireChannelRead(msg);
                 }
             });
 
             pipeline.addLast("webSocketServerProtocolHandler", new WebSocketServerProtocolHandler(websocketPath, null, true, maxProtocolBytes));
-            pipeline.addLast("webSocketFrameAggregator", new WebSocketFrameAggregator(maxProtocolBytes));
+            pipeline.addLast("webSocketFrameAggregator", new io.netty.handler.codec.http.websocketx.WebSocketFrameAggregator(maxProtocolBytes));
+
             // WebSocketFrame vs Message codec
             pipeline.addLast("socketFrameToMessage", new WebSocketFrameToSocketDataCodec(frameType, messageCodec, messageFactory));
 

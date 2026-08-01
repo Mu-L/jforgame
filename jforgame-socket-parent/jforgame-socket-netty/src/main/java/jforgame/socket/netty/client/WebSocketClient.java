@@ -26,6 +26,7 @@ import jforgame.socket.core.protocol.message.MessageFactory;
 import jforgame.socket.core.session.IdSession;
 import jforgame.socket.netty.ChannelIoHandler;
 import jforgame.socket.netty.NSession;
+import jforgame.socket.netty.WebSocketFrameType;
 import jforgame.socket.netty.server.WebSocketFrameToSocketDataCodec;
 
 import java.io.IOException;
@@ -70,7 +71,7 @@ public class WebSocketClient extends AbstractSocketClient {
     }
 
     public WebSocketClient(MessageFactory messageFactory, MessageCodec messageCodec, HostAndPort hostPort, String wsPath) {
-        this(EMPTY_DISPATCHER, messageFactory, messageCodec, 1, hostPort, wsPath);
+        this(EMPTY_DISPATCHER, messageFactory, messageCodec, WebSocketFrameType.FRAME_TYPE_TEXT, hostPort, wsPath);
     }
 
     @Override

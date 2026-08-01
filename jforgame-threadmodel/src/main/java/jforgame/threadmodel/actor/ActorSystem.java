@@ -44,7 +44,7 @@ public class ActorSystem implements ThreadModel {
     public ActorSystem(ActorSystemConfig systemConfig) {
         this.systemConfig = systemConfig;
         // Create thread pool based on configuration
-        NamedThreadFactory threadFactory = new NamedThreadFactory("actor-system");
+        NamedThreadFactory threadFactory = new NamedThreadFactory("jforgame-actor-system");
         int queueCapacity = systemConfig.getQueueCapacity();
         LinkedBlockingQueue<Runnable> queue = queueCapacity > 0 ? new LinkedBlockingQueue<>(queueCapacity) : new LinkedBlockingQueue<>();
         this.threadPool = new ThreadPoolExecutor(

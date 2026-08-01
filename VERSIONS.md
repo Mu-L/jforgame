@@ -408,9 +408,11 @@ BeanProcessor#toBean和toBeanList方法内部自动执行BaseEntity#afterLoad()�
 
 ### jforgame-commons
     TrieDictionary改为线程安全
+    优化DelayContainer和QueueContainer持久化容器， 增加DelayContainerGroup
 
 ### jforgame-socket-netty
     websocket服务器支持自适应帧类型，frameType为0代表自动根据客户端上行编码类型选择编码方式
+    修复 websocket 数据分片聚合 bug，废弃jforgame.socket.netty.server.WebSocketFrameAggregator
 
 ## V5.0.0 api变动！！(计划)
 
