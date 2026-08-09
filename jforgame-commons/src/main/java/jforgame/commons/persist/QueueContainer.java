@@ -34,8 +34,20 @@ public class QueueContainer extends BasePersistContainer {
     private long lastErrorTime = 0;
 
     public QueueContainer(String name, SavingStrategy savingStrategy) {
+        this(name, savingStrategy, null);
+    }
+
+    /**
+     * Construct with dead letter queue support
+     *
+     * @param name            container name
+     * @param savingStrategy  saving strategy
+     * @param deadLetterQueue dead letter queue manager, null means retry forever (no DLQ)
+     */
+    public QueueContainer(String name, SavingStrategy savingStrategy, DeadLetterQueue deadLetterQueue) {
         this.name = name;
         this.savingStrategy = savingStrategy;
+        this.deadLetterQueue = deadLetterQueue;
         namedThreadFactory.newThread(this::run).start();
     }
 
@@ -44,6 +56,15 @@ public class QueueContainer extends BasePersistContainer {
         String key = entity.getKey();
         if (!run.get()) {
             logger.info("db closed, received entity key: {}", key);
+            return;
+        }
+
+        // Reject entities whose keys are already in dead letter queue,
+        // preventing infinite retry loops. But keep the latest entity snapshot
+        // in the dead letter for future reprocessing via deadLetterQueue.reprocess().
+        if (isDeadKey(key)) {
+            handleDeadEntityUpdate(key, entity);
+            logger.warn("Entity rejected: key [{}] is in dead letter queue, use deadLetterQueue.reprocess() instead", key);
             return;
         }
 
@@ -75,6 +96,7 @@ public class QueueContainer extends BasePersistContainer {
                 savingStrategy.doSave(latestEntity);
                 // Remove cache only if current key still maps to this entity
                 savingQueue.remove(key, latestEntity);
+                handleSaveSuccess(key);
 
             } catch (ConcurrentModificationException e1) {
                 if (key != null) {
@@ -85,7 +107,13 @@ public class QueueContainer extends BasePersistContainer {
                 Thread.currentThread().interrupt();
             } catch (Exception e) {
                 if (key != null) {
-                    queue.offer(key);
+                    // Check if entity should be moved to dead letter queue
+                    Entity<?> failedEntity = savingQueue.get(key);
+                    boolean movedToDeadLetter = handleSaveFailure(key, failedEntity, e);
+                    if (!movedToDeadLetter) {
+                        // Re-enqueue for retry
+                        queue.offer(key);
+                    }
                 }
                 // Control error log frequency (5 minutes interval)
                 long now = System.currentTimeMillis();
@@ -104,6 +132,7 @@ public class QueueContainer extends BasePersistContainer {
     protected void saveAllBeforeShutdown() {
         run.set(false);
         String key;
+        int poolSize = queue.size();
         while ((key = queue.poll()) != null) {
             Entity<?> entity = savingQueue.get(key);
             if (entity == null) {
@@ -117,6 +146,7 @@ public class QueueContainer extends BasePersistContainer {
         }
         // Clear residual cache
         savingQueue.clear();
+        logger.error("{} container shutdown, save {} elements", name, poolSize);
     }
 
     @Override

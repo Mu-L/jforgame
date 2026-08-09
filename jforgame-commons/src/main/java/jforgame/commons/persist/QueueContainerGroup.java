@@ -6,6 +6,7 @@ import java.util.Arrays;
  * Persistence in queue group form
  * Combine several queue containers into a queue group, perform modulo operation based on entity id, similar to database table partitioning strategy
  */
+@Deprecated
 public class QueueContainerGroup extends BasePersistContainer {
 
     /**
@@ -14,9 +15,21 @@ public class QueueContainerGroup extends BasePersistContainer {
     private QueueContainer[] group;
 
     public QueueContainerGroup(String name, SavingStrategy savingStrategy, int workers) {
+        this(name, savingStrategy, workers, null);
+    }
+
+    /**
+     * Construct with dead letter queue support
+     *
+     * @param name            group name
+     * @param savingStrategy  saving strategy
+     * @param workers         number of worker threads
+     * @param deadLetterQueue dead letter queue manager, null means retry forever (no DLQ)
+     */
+    public QueueContainerGroup(String name, SavingStrategy savingStrategy, int workers, DeadLetterQueue deadLetterQueue) {
         group = new QueueContainer[workers];
         for (int i = 0; i < workers; i++) {
-            QueueContainer work = new QueueContainer(name, savingStrategy);
+            QueueContainer work = new QueueContainer(name, savingStrategy, deadLetterQueue);
             group[i] = work;
         }
         this.name = name + "-group";

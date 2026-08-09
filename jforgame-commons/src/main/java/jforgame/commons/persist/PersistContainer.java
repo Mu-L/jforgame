@@ -7,7 +7,7 @@ package jforgame.commons.persist;
  * 1. Queue-based persistence container, see {@link QueueContainer}
  * 2. Delay-based persistence container, see {@link DelayContainer}
  * 3. Time periodic scheduling (cron) persistence container, requires quartz library, see {@link CronContainer}
- * 4. Free combination of the above 3, refer to {@link QueueContainerGroup}
+ * 4. Free combination of the above 3, refer to {@link PersistContainerGroup}
  */
 public interface PersistContainer {
 

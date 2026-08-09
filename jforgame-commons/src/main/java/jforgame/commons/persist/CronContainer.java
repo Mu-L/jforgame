@@ -13,6 +13,7 @@ import org.quartz.impl.StdSchedulerFactory;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.util.ConcurrentModificationException;
 import java.util.Map;
 import java.util.Properties;
 import java.util.concurrent.ConcurrentHashMap;
@@ -23,7 +24,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
  *
  * @since 3.4.0
  */
-public class CronContainer implements PersistContainer {
+public class CronContainer extends BasePersistContainer {
 
     private static final Logger logger = LoggerFactory.getLogger(CronContainer.class);
 
@@ -39,11 +40,29 @@ public class CronContainer implements PersistContainer {
 
     private SavingStrategy savingStrategy;
 
+    /**
+     * Dead letter queue manager, null means dead letter mechanism disabled (retry forever)
+     */
+    private DeadLetterQueue deadLetterQueue;
+
     private final static String keyInScheduler = "cronContainer";
 
     public CronContainer(String name, String cronExpression, SavingStrategy savingStrategy) {
+        this(name, cronExpression, savingStrategy, null);
+    }
+
+    /**
+     * Construct with dead letter queue support
+     *
+     * @param name            container name
+     * @param cronExpression  cron expression for Quartz
+     * @param savingStrategy  saving strategy
+     * @param deadLetterQueue dead letter queue manager, null means retry forever (no DLQ)
+     */
+    public CronContainer(String name, String cronExpression, SavingStrategy savingStrategy, DeadLetterQueue deadLetterQueue) {
         this.name = name;
         this.savingStrategy = savingStrategy;
+        this.deadLetterQueue = deadLetterQueue;
         try {
             // Create Quartz scheduler instance and start
             StdSchedulerFactory factory = getStdSchedulerFactory(name);
@@ -86,13 +105,23 @@ public class CronContainer implements PersistContainer {
             return;
         }
         String key = entity.getKey();
+
+        // Reject entities whose keys are already in dead letter queue,
+        // preventing infinite retry loops. But keep the latest entity snapshot
+        // in the dead letter for future reprocessing via deadLetterQueue.reprocess().
+        if (isDeadKey(key)) {
+            handleDeadEntityUpdate(key, entity);
+            logger.warn("Entity rejected: key [{}] is in dead letter queue, use deadLetterQueue.reprocess() instead", key);
+            return;
+        }
+
         entityQueue.put(key, entity);
     }
 
     @Override
-    public void shutdownGraceful() {
-        run.compareAndSet(true, false);
+    protected void saveAllBeforeShutdown() {
         try {
+            int poolSize = entityQueue.size();
             // Execute last persistence operation
             entityQueue.forEach((key, entity) -> {
                 try {
@@ -103,7 +132,7 @@ public class CronContainer implements PersistContainer {
             });
             // Close scheduler, stop scheduled task
             scheduler.shutdown(true);
-            logger.info("Cron container [{}] close ok", name);
+            logger.error("{} container shutdown, save {} elements", name, poolSize);
         } catch (SchedulerException e) {
             logger.error("Failed to shutdown scheduler for CronContainer [{}]", name, e);
         }
@@ -112,6 +141,15 @@ public class CronContainer implements PersistContainer {
     @Override
     public int size() {
         return entityQueue.size();
+    }
+
+    /**
+     * Get dead letter queue manager, may be null
+     *
+     * @return dead letter queue manager
+     */
+    public DeadLetterQueue getDeadLetterQueue() {
+        return deadLetterQueue;
     }
 
     // Inner class implements Job interface, defines logic when scheduled task executes, will trigger according to cronExpression configuration rules
@@ -130,11 +168,25 @@ public class CronContainer implements PersistContainer {
                 if (entity == null) {
                     continue;
                 }
+                String key = entry.getKey();
                 try {
                     container.savingStrategy.doSave(entity);
-                } catch (Exception e) {
+                    if (container.deadLetterQueue != null) {
+                        container.deadLetterQueue.onSaveSuccess(key);
+                    }
+                } catch (ConcurrentModificationException e1) {
                     container.receive(entity);
-                    logger.error("Failed to save entity [{}] in CronContainer [{}]", entry.getKey(), container.name, e);
+                } catch (Exception e) {
+                    // Check if entity should be moved to dead letter queue
+                    boolean movedToDeadLetter = false;
+                    if (container.deadLetterQueue != null) {
+                        movedToDeadLetter = container.deadLetterQueue.onSaveFailure(key, entity, e);
+                    }
+                    if (!movedToDeadLetter) {
+                        // Re-enqueue for retry
+                        container.receive(entity);
+                    }
+                    logger.error("Failed to save entity [{}] in CronContainer [{}]", key, container.name, e);
                 }
             }
         }

@@ -2,6 +2,7 @@ package jforgame.commons.persist;
 
 import jforgame.commons.thread.NamedThreadFactory;
 
+import java.util.ConcurrentModificationException;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.concurrent.BlockingQueue;
@@ -38,9 +39,22 @@ public class DelayContainer extends BasePersistContainer {
     private final int delaySeconds;
 
     public DelayContainer(String name, int delaySeconds, SavingStrategy savingStrategy) {
+        this(name, delaySeconds, savingStrategy, null);
+    }
+
+    /**
+     * Construct with dead letter queue support
+     *
+     * @param name            container name
+     * @param delaySeconds    persist delay in seconds
+     * @param savingStrategy  saving strategy
+     * @param deadLetterQueue dead letter queue manager, null means retry forever (no DLQ)
+     */
+    public DelayContainer(String name, int delaySeconds, SavingStrategy savingStrategy, DeadLetterQueue deadLetterQueue) {
         this.name = name;
         this.delaySeconds = delaySeconds;
         this.savingStrategy = savingStrategy;
+        this.deadLetterQueue = deadLetterQueue;
         // Start independent persist worker thread, consistent with QueueContainer startup mode
         namedThreadFactory.newThread(this::persistWorker).start();
     }
@@ -54,6 +68,15 @@ public class DelayContainer extends BasePersistContainer {
 
         if (!run.get()) {
             logger.info("db closed, received entity key: {}", key);
+            return;
+        }
+
+        // Reject entities whose keys are already in dead letter queue,
+        // preventing infinite retry loops. But keep the latest entity snapshot
+        // in the dead letter for future reprocessing via deadLetterQueue.reprocess().
+        if (isDeadKey(key)) {
+            handleDeadEntityUpdate(key, entity);
+            logger.warn("Entity rejected: key [{}] is in dead letter queue, use deadLetterQueue.reprocess() instead", key);
             return;
         }
 
@@ -133,11 +156,20 @@ public class DelayContainer extends BasePersistContainer {
                 if (removeSuccess) {
                     localLatestEntityMap.remove(key, latestEntity);
                 }
+                handleSaveSuccess(key);
+            } catch (ConcurrentModificationException ignored) {
+                persistQueue.offer(task);
             } catch (InterruptedException e) {
                 Thread.currentThread().interrupt();
             } catch (Exception e) {
                 if (task != null) {
-                    persistQueue.offer(task);
+                    // Check if entity should be moved to dead letter queue
+                    Entity<?> failedEntity = localLatestEntityMap.get(task.key);
+                    boolean movedToDeadLetter = handleSaveFailure(task.key, failedEntity, e);
+                    if (!movedToDeadLetter) {
+                        // Re-enqueue for retry
+                        persistQueue.offer(task);
+                    }
                 }
                 long now = System.currentTimeMillis();
                 if (now - lastErrorTime > 5000) {
@@ -154,7 +186,7 @@ public class DelayContainer extends BasePersistContainer {
     @Override
     protected void saveAllBeforeShutdown() {
         run.set(false);
-
+        int poolSize = pool.size();
         Iterator<Map.Entry<String, Node>> iterator = pool.entrySet().iterator();
         while (iterator.hasNext()) {
             Map.Entry<String, Node> entry = iterator.next();
@@ -173,6 +205,7 @@ public class DelayContainer extends BasePersistContainer {
 
         // Clear residual persist tasks
         persistQueue.clear();
+        logger.error("{} container shutdown, save {} elements", name, poolSize);
 
         try {
             shutdownScheduler();
