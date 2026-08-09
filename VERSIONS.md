@@ -11,15 +11,19 @@
 
 ## V1.0.0(2024-03-22)
 
-### jforgame-commons 基本工具类
+### jforgame-commons 
+    基本工具类
 
-### jforgame-socket-parent 网络框架,netty+mina
+### jforgame-socket-parent 
+    网络框架,netty+mina
 
-### jforgame-codec-parent 消息编解码,protobuf+struct
+### jforgame-codec-parent 
+    消息编解码,protobuf+struct
 
 ## V1.1.0(2024-03-29)
 
-### jforgame-hotswap 新增代码热更模块
+### jforgame-hotswap 
+    新增代码热更模块
 
 ### jforgame-socket-parent
 
@@ -312,51 +316,51 @@
 
 ### jforgame-commons
 
-修复DelayContainer和QueueContainer并发修改bug
-增加CronContainer基于cron表达式的持久化容器
-修复LruHashMap#get()读写锁问题
-DateUtil增加getDayDiffFromToday()来计算指定时间戳与今天相差的天数
+    修复DelayContainer和QueueContainer并发修改bug
+    增加CronContainer基于cron表达式的持久化容器
+    修复LruHashMap#get()读写锁问题
+    DateUtil增加getDayDiffFromToday()来计算指定时间戳与今天相差的天数
 
 ### jforgame-threadmodel
 
-ActorSystemConfig增加queueCapacity字段，用于配置线程池队列
-ActorSystem优化accept()方法性能
+    ActorSystemConfig增加queueCapacity字段，用于配置线程池队列
+    ActorSystem优化accept()方法性能
 
 ### jforgame-codec-struct
 
-内部增加一些运行期异常检测
+    内部增加一些运行期异常检测
 
 ### jforgame-orm
 
-SchemaStrategy#doExecute()改为由业务代码自行关闭连接库连接
+    SchemaStrategy#doExecute()改为由业务代码自行关闭连接库连接
 
 ### jforgame-runtime
 
-修复 ThreadSampler对“JVM 内部线程”CPU统计不准的问题
-修复DiskFileSystemVo#usage()磁盘空间为0时异常
+    修复 ThreadSampler对“JVM 内部线程”CPU统计不准的问题
+    修复DiskFileSystemVo#usage()磁盘空间为0时异常
 
 ## V3.5.0(2026-3-14)
 
 ### jforgame-logger
 
-新增日志系统，自动适配各种日志框架，为生产运营/监控提供日志服务
+    新增日志系统，自动适配各种日志框架，为生产运营/监控提供日志服务
 
 ### jforgame-socket-api
 
-优化RpcMessageClient#request()内部逻辑
+    优化RpcMessageClient#request()内部逻辑
 
 ### jforgame-socket-netty
 
-websocket服务器对wspath带参数进行容错
+    websocket服务器对wspath带参数进行容错
 
 ### jforgame-socket-mina
 
-版本从2.0.27升至2.0.28
+    版本从2.0.27升至2.0.28
 
 ### jforgame-orm
 
-BeanProcessor#toBean和toBeanList方法内部自动执行BaseEntity#afterLoad()钩子    
-修复BeanProcessor#toBean()没有处理对象继承的属性
+    BeanProcessor#toBean和toBeanList方法内部自动执行BaseEntity#afterLoad()钩子    
+    修复BeanProcessor#toBean()没有处理对象继承的属性
 
 ## V4.0.0 api变动！！
 
@@ -386,31 +390,43 @@ BeanProcessor#toBean和toBeanList方法内部自动执行BaseEntity#afterLoad()�
     拆分为jforgame-data业务模块和jforgame-data-spring-boot-starter装配模块
     jforgame-data-spring-boot-starter更名为jforgame-data-spring-boot-starter
 
-
 ### jforgame-threadmodel
+
     ActorSystem移除actor时同步停用实例并清空邮箱
     ActorSystem增加运行状态校验，系统关闭后拒绝新建actor和提交任务
     ActorSystemConfig调整部署规则匹配策略，改为“精确匹配优先，其次最长前缀匹配”
 
 ### jforgame-doctor
+
     ClassFileMeta读取类名移除对org.ow2.as依赖，改为直接解析字节码
 
 ### jforgame-orm
+
     去掉entity主键字段必须是基本类型包装类的限制
 
 ### jforgame-codec-json
+
     新增基于json的消息编解码工具
 
-## V4.1.0 
+## V4.1.0
 
 ### jforgame-orm
-    bean字段允许使用基本类型，不强迫使用包装类
+
+    entity字段允许使用基本类型，不强迫使用包装类
 
 ### jforgame-commons
+
     TrieDictionary改为线程安全
-    优化DelayContainer和QueueContainer持久化容器， 增加DelayContainerGroup
+    优化DelayContainer和QueueContainer持久化容器， 增加通用容器组PersistContainerGroup
+    PersistContainer增加死信机制
+
+### jforgame-data
+    CommonData#key add @Index annotation
+    ResourceOptions add ignoreConfig attribute
 
 ### jforgame-socket-netty
+
+    netty版本从4.1.107.Final升级到4.1.125.Final，精简netty的依赖包
     websocket服务器支持自适应帧类型，frameType为0代表自动根据客户端上行编码类型选择编码方式
     修复 websocket 数据分片聚合 bug，废弃jforgame.socket.netty.server.WebSocketFrameAggregator
 
@@ -419,3 +435,16 @@ BeanProcessor#toBean和toBeanList方法内部自动执行BaseEntity#afterLoad()�
 ### jforgame-codec-struct
 
     MapCodec/MapCodec2 key支持除String以外的其他基本类型
+
+### jforgame-commons
+
+    DbService更名为EntityPersister
+    persist作为独立模块
+
+### jforgame-socket-core
+
+    与threadmodel解耦,(DispatchThreadRequestScheduler,ActorRequestScheduler,RequestSchedulers,RequestActorSelector,SessionBindingActorSelector)等文件属于装配层
+
+### jforgame-socket-mina
+
+    DefaultClientSocketIoHandler更名为CallbackHandler

@@ -22,6 +22,7 @@ public class RequestContext {
 
     /**
      * Request message packet
+     * @see jforgame.socket.core.protocol.message.Message
      */
     private Object request;
 

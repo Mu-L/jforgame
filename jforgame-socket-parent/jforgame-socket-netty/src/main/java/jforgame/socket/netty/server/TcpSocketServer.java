@@ -83,11 +83,17 @@ public class TcpSocketServer implements ServerNode {
                 && Epoll.isAvailable();
     }
 
+    /**
+     * Shuts down the Netty event loop groups asynchronously.
+     * The method returns immediately without waiting for the shutdown to complete.
+     * This allows faster server shutdown while handling remaining channelInactive
+     * events in the background.
+     */
     @Override
     public void shutdown() throws Exception {
         bossGroup.shutdownGracefully();
         workerGroup.shutdownGracefully();
-        logger.info("socket server stopped successfully");
+        logger.info("socket server stop successfully");
     }
 
 }

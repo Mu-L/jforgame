@@ -11,6 +11,9 @@ import java.util.Enumeration;
 /**
  * Log4j (1.x) implementation of {@link AppLogger}
  * Provides classified logging with separate files for each logger type
+ * DEPRECATED: Apache Log4j 1.2 has been EOL since August 2015 with unresolved security risks.
+ * Do not use this class for new development. Migrate to Log4j 2 at the earliest opportunity.
+ * @see Log4J2AppLogger
  */
 public class Log4JAppLogger implements AppLogger {
 
@@ -60,7 +63,7 @@ public class Log4JAppLogger implements AppLogger {
      * Configures a dedicated appender for the specified logger
      * Creates a daily rolling file appender
      *
-     * @param name the logger name
+     * @param name   the logger name
      * @param logger the logger instance to configure
      */
     private synchronized void configure(String name, Logger logger) {

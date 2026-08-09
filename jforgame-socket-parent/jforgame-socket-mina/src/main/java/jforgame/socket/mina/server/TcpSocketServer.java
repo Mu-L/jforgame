@@ -78,7 +78,7 @@ public class TcpSocketServer implements ServerNode {
         acceptor.setHandler(new DefaultSocketIoHandler(socketIoDispatcher));
 
         for (HostAndPort node : nodesConfig) {
-            logger.info("socket server is listening at " + node.getPort() + "......");
+            logger.info("socket server is listening at {}......", node.getPort());
             acceptor.bind(new InetSocketAddress(node.getPort()));
         }
     }
@@ -89,7 +89,7 @@ public class TcpSocketServer implements ServerNode {
             acceptor.unbind();
             acceptor.dispose();
         }
-        logger.info("---------> socket server stop successfully");
+        logger.info("socket server stop successfully");
     }
 
 }

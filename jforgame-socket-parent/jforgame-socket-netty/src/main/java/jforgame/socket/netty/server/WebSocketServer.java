@@ -14,6 +14,7 @@ import io.netty.handler.codec.http.HttpObjectAggregator;
 import io.netty.handler.codec.http.HttpServerCodec;
 import io.netty.handler.codec.http.websocketx.BinaryWebSocketFrame;
 import io.netty.handler.codec.http.websocketx.TextWebSocketFrame;
+import io.netty.handler.codec.http.websocketx.WebSocketFrameAggregator;
 import io.netty.handler.codec.http.websocketx.WebSocketServerProtocolHandler;
 import io.netty.handler.ssl.SslContext;
 import io.netty.handler.timeout.IdleStateHandler;
@@ -90,10 +91,17 @@ public class WebSocketServer implements ServerNode {
         }
     }
 
+    /**
+     * Shuts down the Netty event loop groups asynchronously.
+     * The method returns immediately without waiting for the shutdown to complete.
+     * This allows faster server shutdown while handling remaining channelInactive
+     * events in the background.
+     */
     @Override
     public void shutdown() throws Exception {
         bossGroup.shutdownGracefully();
         workerGroup.shutdownGracefully();
+        logger.info("socket server stop successfully");
     }
 
     private class WebSocketChannelInitializer extends ChannelInitializer<SocketChannel> {
@@ -122,7 +130,7 @@ public class WebSocketServer implements ServerNode {
             });
 
             pipeline.addLast("webSocketServerProtocolHandler", new WebSocketServerProtocolHandler(websocketPath, null, true, maxProtocolBytes));
-            pipeline.addLast("webSocketFrameAggregator", new io.netty.handler.codec.http.websocketx.WebSocketFrameAggregator(maxProtocolBytes));
+            pipeline.addLast("webSocketFrameAggregator", new WebSocketFrameAggregator(maxProtocolBytes));
 
             // WebSocketFrame vs Message codec
             pipeline.addLast("socketFrameToMessage", new WebSocketFrameToSocketDataCodec(frameType, messageCodec, messageFactory));

@@ -17,7 +17,41 @@
     <dependencies>
         <dependency>
             <groupId>io.netty</groupId>
-            <artifactId>netty-all</artifactId>
+            <artifactId>netty-common</artifactId>
+            <version>${netty.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>io.netty</groupId>
+            <artifactId>netty-buffer</artifactId>
+            <version>${netty.version}</version>
+        </dependency>
+
+        <!-- 底层传输：TCP NIO Socket 核心 -->
+        <dependency>
+            <groupId>io.netty</groupId>
+            <artifactId>netty-transport</artifactId>
+            <version>${netty.version}</version>
+        </dependency>
+
+        <!-- 通用处理器、编解码基类，WebSocket依赖此包 -->
+        <dependency>
+            <groupId>io.netty</groupId>
+            <artifactId>netty-handler</artifactId>
+            <version>${netty.version}</version>
+        </dependency>
+
+        <!-- HTTP1.1 + WebSocket 编解码 -->
+        <dependency>
+            <groupId>io.netty</groupId>
+            <artifactId>netty-codec-http</artifactId>
+            <version>${netty.version}</version>
+        </dependency>
+        <!-- Linux epoll 高并发原生传输 -->
+        <dependency>
+            <groupId>io.netty</groupId>
+            <artifactId>netty-transport-native-epoll</artifactId>
+            <version>${netty.version}</version>
+            <classifier>linux-x86_64</classifier>
         </dependency>
         <dependency>
             <groupId>io.github.jforgame</groupId>

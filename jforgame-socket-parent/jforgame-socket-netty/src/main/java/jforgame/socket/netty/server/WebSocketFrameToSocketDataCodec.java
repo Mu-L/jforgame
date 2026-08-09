@@ -184,6 +184,10 @@ public class WebSocketFrameToSocketDataCodec extends MessageToMessageCodec<WebSo
                 return;
             }
             Class<?> clazz = messageFactory.getMessage(NumberUtil.intValue(textFrame.cmd));
+            if (clazz == null) {
+                logger.info("unknow protocol:{}", textFrame.cmd);
+                return;
+            }
             Object realMsg = JsonUtil.string2Object(textFrame.msg, clazz);
             MessageHeader header = new DefaultMessageHeader();
             header.setCmd(textFrame.cmd);
@@ -205,7 +209,7 @@ public class WebSocketFrameToSocketDataCodec extends MessageToMessageCodec<WebSo
             in.readBytes(body);
             Class<?> clazz = messageFactory.getMessage(NumberUtil.intValue(cmd));
             if (clazz == null) {
-                logger.info("未识别的协议号:{}", cmd);
+                logger.info("unknow protocol:{}", cmd);
                 return;
             }
             Object message = messageCodec.decode(clazz, body);

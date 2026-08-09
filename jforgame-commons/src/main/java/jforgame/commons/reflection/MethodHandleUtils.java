@@ -1,5 +1,7 @@
 package jforgame.commons.reflection;
 
+import jforgame.commons.util.TypeUtil;
+
 import java.lang.invoke.MethodHandle;
 import java.lang.invoke.MethodHandles;
 import java.lang.reflect.InvocationTargetException;
@@ -208,25 +210,12 @@ public final class MethodHandleUtils {
 
         // Handle primitive type and wrapper type relationship
         if (targetType.isPrimitive()) {
-            return boxedType(targetType).isAssignableFrom(sourceType);
+            return TypeUtil.getBoxedType(targetType).isAssignableFrom(sourceType);
         } else if (sourceType.isPrimitive()) {
-            return targetType.isAssignableFrom(boxedType(sourceType));
+            return targetType.isAssignableFrom(TypeUtil.getBoxedType(sourceType));
         }
 
         return false;
-    }
-
-    // Get the wrapper type of primitive type
-    private static Class<?> boxedType(Class<?> primitiveType) {
-        if (primitiveType == int.class) return Integer.class;
-        if (primitiveType == long.class) return Long.class;
-        if (primitiveType == boolean.class) return Boolean.class;
-        if (primitiveType == double.class) return Double.class;
-        if (primitiveType == float.class) return Float.class;
-        if (primitiveType == char.class) return Character.class;
-        if (primitiveType == short.class) return Short.class;
-        if (primitiveType == byte.class) return Byte.class;
-        return primitiveType;
     }
 
     // Generate method signature
