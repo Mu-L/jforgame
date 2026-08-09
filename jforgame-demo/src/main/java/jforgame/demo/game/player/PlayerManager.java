@@ -11,7 +11,6 @@ import jforgame.demo.game.database.user.PlayerEnt;
 import jforgame.demo.game.player.events.PlayerLogoutEvent;
 import jforgame.demo.game.player.message.ResCreateNewPlayer;
 import jforgame.demo.game.player.message.ResKickPlayer;
-import jforgame.demo.game.player.model.AccountProfile;
 import jforgame.demo.game.player.model.PlayerProfile;
 import jforgame.demo.listener.EventDispatcher;
 import jforgame.demo.listener.EventType;
@@ -34,25 +33,19 @@ public class PlayerManager extends BaseCacheService<Long, PlayerEnt> {
 
     private Logger logger = LoggerFactory.getLogger(getClass());
 
-    private ConcurrentMap<Long, PlayerEnt> onlines = new ConcurrentHashMap<>();
+    private final ConcurrentMap<Long, PlayerEnt> onlines = new ConcurrentHashMap<>();
 
     /**
      * 全服所有角色的简况
      */
-    private ConcurrentMap<Long, PlayerProfile> playerProfiles = new ConcurrentHashMap<>();
-
-    /**
-     * 全服所有账号的简况
-     */
-    private ConcurrentMap<Long, AccountProfile> accountProfiles = new ConcurrentHashMap<>();
+    private final ConcurrentMap<Long, PlayerProfile> playerProfiles = new ConcurrentHashMap<>();
 
     public void loadAllPlayerProfiles() {
-        String sql = "SELECT id, accountId,name,level,job FROM playerent";
+        String sql = "SELECT id,name,level,job FROM playerent";
         try {
             List<Map<String, Object>> result = DbUtils.queryMapList(DbUtils.DB_USER, sql);
             for (Map<String, Object> record : result) {
                 PlayerProfile baseInfo = new PlayerProfile();
-                baseInfo.setAccountId(NumberUtil.longValue(record.get("accountId")));
                 baseInfo.setId(NumberUtil.longValue(record.get("id")));
                 baseInfo.setJob(NumberUtil.intValue(record.get("job")));
                 baseInfo.setName((String) record.get("name"));
@@ -65,14 +58,6 @@ public class PlayerManager extends BaseCacheService<Long, PlayerEnt> {
 
     private void addPlayerProfile(PlayerProfile baseInfo) {
         playerProfiles.put(baseInfo.getId(), baseInfo);
-    }
-
-    public List<PlayerProfile> getPlayersBy(long accountId) {
-        AccountProfile account = accountProfiles.get(accountId);
-        if (account == null) {
-            return null;
-        }
-        return account.getPlayers();
     }
 
     private void createNewPlayer(IdSession session, String name) {
@@ -91,13 +76,14 @@ public class PlayerManager extends BaseCacheService<Long, PlayerEnt> {
         baseInfo.setLevel(player.getLevel());
         baseInfo.setJob(player.getJob());
         baseInfo.setName(player.getName());
+        addPlayerProfile(baseInfo);
 
         ResCreateNewPlayer response = new ResCreateNewPlayer();
         response.setPlayerId(playerId);
         MessagePusher.pushMessage(session, response);
     }
 
-    public void handleAccountLogin(IdSession session, long playerId) {
+    public void handlePlayerLogin(IdSession session, long playerId) {
         PlayerEnt player = GameContext.playerManager.get(playerId);
         if (player != null) {
             //绑定session与玩家id
@@ -200,7 +186,6 @@ public class PlayerManager extends BaseCacheService<Long, PlayerEnt> {
         removeFromOnline(player);
         IdSession session = SessionManager.INSTANCE.getSessionBy(playerId);
         MessagePusher.pushMessage(session, new ResKickPlayer());
-//		session.close(false);
     }
 
 }

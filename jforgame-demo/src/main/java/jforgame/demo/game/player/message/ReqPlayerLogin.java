@@ -9,7 +9,7 @@ import jforgame.socket.core.protocol.message.Message;
  * 请求－账号登录
  */
 @MessageMeta(module = Modules.LOGIN, cmd = LoginDataPool.REQ_LOGIN)
-public class ReqAccountLogin implements Message {
+public class ReqPlayerLogin implements Message {
 
     /**
      * 账号流水号

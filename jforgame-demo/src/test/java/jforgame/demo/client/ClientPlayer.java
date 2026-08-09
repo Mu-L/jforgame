@@ -1,7 +1,7 @@
 package jforgame.demo.client;
 
 import jforgame.commons.util.JsonUtil;
-import jforgame.demo.game.player.message.ReqAccountLogin;
+import jforgame.demo.game.player.message.ReqPlayerLogin;
 import jforgame.socket.core.protocol.message.Message;
 import jforgame.socket.core.session.IdSession;
 
@@ -19,7 +19,7 @@ public class ClientPlayer {
     }
 
     public void login() {
-        ReqAccountLogin request = new ReqAccountLogin();
+        ReqPlayerLogin request = new ReqPlayerLogin();
         request.setPlayerId(123L);
         this.sendMessage(request);
     }

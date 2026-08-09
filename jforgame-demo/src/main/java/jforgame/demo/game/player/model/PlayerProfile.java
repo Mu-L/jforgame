@@ -1,65 +1,55 @@
 package jforgame.demo.game.player.model;
 
 public class PlayerProfile {
-	
-	private long id;
-	
-	private long accountId;
 
-	private String name;
+    private long id;
 
-	/**
-	 * 职业
-	 */
-	private int job;
+    private String name;
 
-	private int level;
+    /**
+     * 职业
+     */
+    private int job;
 
-	public long getId() {
-		return id;
-	}
+    private int level;
 
-	public void setId(long id) {
-		this.id = id;
-	}
+    public long getId() {
+        return id;
+    }
 
-	public long getAccountId() {
-		return accountId;
-	}
+    public void setId(long id) {
+        this.id = id;
+    }
 
-	public void setAccountId(long accountId) {
-		this.accountId = accountId;
-	}
+    public String getName() {
+        return name;
+    }
 
-	public String getName() {
-		return name;
-	}
+    public void setName(String name) {
+        this.name = name;
+    }
 
-	public void setName(String name) {
-		this.name = name;
-	}
+    public int getJob() {
+        return job;
+    }
 
-	public int getJob() {
-		return job;
-	}
+    public void setJob(int job) {
+        this.job = job;
+    }
 
-	public void setJob(int job) {
-		this.job = job;
-	}
+    public int getLevel() {
+        return level;
+    }
 
-	public int getLevel() {
-		return level;
-	}
+    public void setLevel(int level) {
+        this.level = level;
+    }
 
-	public void setLevel(int level) {
-		this.level = level;
-	}
+    @Override
+    public String toString() {
+        return "PlayerBaseInfo [id=" + id + ", name=" + name + ", job=" + job + ", level="
+                + level + "]";
+    }
 
-	@Override
-	public String toString() {
-		return "PlayerBaseInfo [id=" + id + ", accountId=" + accountId + ", name=" + name + ", job=" + job + ", level="
-				+ level + "]";
-	}
-	
 
 }

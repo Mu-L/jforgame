@@ -1,7 +1,7 @@
 package jforgame.demo.game.player.controller;
 
 import jforgame.demo.game.GameContext;
-import jforgame.demo.game.player.message.ReqAccountLogin;
+import jforgame.demo.game.player.message.ReqPlayerLogin;
 import jforgame.socket.core.protocol.annotation.MessageRoute;
 import jforgame.socket.core.protocol.annotation.RequestHandler;
 import jforgame.socket.core.session.IdSession;
@@ -10,8 +10,8 @@ import jforgame.socket.core.session.IdSession;
 public class PlayerController {
 
     @RequestHandler
-    public void reqAccountLogin(IdSession session, ReqAccountLogin request) {
-        GameContext.playerManager.handleAccountLogin(session, request.getPlayerId());
+    public void reqAccountLogin(IdSession session, ReqPlayerLogin request) {
+        GameContext.playerManager.handlePlayerLogin(session, request.getPlayerId());
     }
 
 }
