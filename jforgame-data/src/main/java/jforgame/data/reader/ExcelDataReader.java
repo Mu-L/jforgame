@@ -71,7 +71,7 @@ public class ExcelDataReader extends BaseDataReader implements DataReader {
 
             return readRecords(clazz, exportHeader, records, firstDataIndex);
         } catch (Exception e) {
-            logger.error(String.format("Configuration table [%s] parsing exception", clazz.getSimpleName()), e);
+            logger.error("Configuration table [{}] parsing exception", clazz.getSimpleName(), e);
             throw new RuntimeException(e);
         }
     }

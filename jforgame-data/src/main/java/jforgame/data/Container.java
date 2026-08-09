@@ -62,7 +62,7 @@ public class Container<K extends Serializable & Comparable<K>, V> {
      * This method is called after all data has been loaded
      * Can associate other configuration tables for validation here
      *
-     * @throws RuntimeException throws exception if validation fails, which will terminate application startup
+     * @throws DataValidateException throws exception if validation fails, which will terminate application startup
      */
     public void validate(DataRepository dataRepository) throws DataValidateException {
 

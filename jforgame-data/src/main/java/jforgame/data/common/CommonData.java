@@ -2,6 +2,7 @@ package jforgame.data.common;
 
 import jforgame.data.annotation.DataTable;
 import jforgame.data.annotation.Id;
+import jforgame.data.annotation.Index;
 
 
 /**
@@ -14,6 +15,7 @@ public class CommonData {
     @Id
     private int id;
 
+    @Index(unique = true)
     private String key;
 
     private String value;

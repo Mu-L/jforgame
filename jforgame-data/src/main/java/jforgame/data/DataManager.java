@@ -154,13 +154,15 @@ public class DataManager implements DataRepository {
                 records = dataReader.read(resource.getInputStream(), definition.getClazz());
                 logger.info("loaded table {} with {} records", table, records.size());
             } catch (IOException e) {
+                if (!options.isIgnoreConfig()) {
                     if (table.equals(options.getCommonTableName())) {
-                        // Allow projects to not use common table functionality
+                        // Allow not using common table functionality
                         logger.error("loaded table {} failed", table);
                     } else {
                         throw new IllegalStateException(String.format("cannot read %s data file", table));
                     }
                 }
+            }
 
             container.inject(definition, records);
             // Cache secondary data

@@ -31,6 +31,12 @@ public class ResourceOptions {
      */
     private String commonTableName = "common";
 
+    /**
+     * decide whether to report an {@link IllegalStateException} when the configuration file corresponding to the Config Table does not exist
+     * @since 4.1.0
+     */
+    private boolean ignoreConfig = true;
+
     public String getLocation() {
         return location;
     }
@@ -69,5 +75,13 @@ public class ResourceOptions {
 
     public void setCommonTableName(String commonTableName) {
         this.commonTableName = commonTableName;
+    }
+
+    public boolean isIgnoreConfig() {
+        return ignoreConfig;
+    }
+
+    public void setIgnoreConfig(boolean ignoreConfig) {
+        this.ignoreConfig = ignoreConfig;
     }
 }
