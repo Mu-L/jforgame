@@ -362,7 +362,7 @@
     BeanProcessor#toBean和toBeanList方法内部自动执行BaseEntity#afterLoad()钩子    
     修复BeanProcessor#toBean()没有处理对象继承的属性
 
-## V4.0.0 api变动！！
+## V4.0.0 api变动！！(2026-7-20)
 
 ### jforgame-data-spring-boot-starter
 
@@ -442,7 +442,8 @@
     persist作为独立模块
 
 ### jforgame-socket-core
-
+    MessageHandler更名为IoMessageFilter，messageReceived更名为filter，强调io层处理
+    ChainedMessageDispatcher#addMessageHandler更名为addIoMessageFilter
     与threadmodel解耦,(DispatchThreadRequestScheduler,ActorRequestScheduler,RequestSchedulers,RequestActorSelector,SessionBindingActorSelector)等文件属于装配层
 
 ### jforgame-socket-mina
