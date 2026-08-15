@@ -62,7 +62,7 @@ public class JsonDataReader extends BaseDataReader implements DataReader {
                         // We can only determine based on whether the bean has a field with the same name.
                         // If the field doesn't exist, it's considered a client field and is ignored.
                     } catch (Exception e) {
-                        logger.error(String.format("Configuration table [%s] field [%s] conversion exception", clazz.getSimpleName(), colName), e);
+                        logger.error("Configuration table [{}] field [{}] conversion exception", clazz.getSimpleName(), colName, e);
                         throw e;
                     }
                 }
@@ -70,7 +70,7 @@ public class JsonDataReader extends BaseDataReader implements DataReader {
             }
             return records;
         } catch (Exception e) {
-            logger.error(String.format("Configuration table [%s] parsing exception", clazz.getSimpleName()), e);
+            logger.error("Configuration table [{}] parsing exception", clazz.getSimpleName(), e);
             throw new RuntimeException(e);
         }
     }

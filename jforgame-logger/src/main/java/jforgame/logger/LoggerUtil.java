@@ -31,6 +31,17 @@ public class LoggerUtil {
     /**
      * Logs info message with automatic classification by logger type, each type has its own directory
      *
+     * @param loggerName the log type name
+     * @param content    to log content
+     */
+    public static void info(String loggerName, String content) {
+        AppLogger logger = LoggerBuilder.getLogger(loggerName);
+        logger.info(content);
+    }
+
+    /**
+     * Logs info message with automatic classification by logger type, each type has its own directory
+     *
      * @param logger the log type name
      * @param args   parameters, must be even number (key-value pairs)
      */

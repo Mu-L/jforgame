@@ -17,8 +17,8 @@ jforgame is a lightweight, high-performance mobile game server framework written
 - Supports hot code replacement and hot configuration updates without server shutdown, ensuring uninterrupted game operation and maintenance
 - A Go version for game server development is also available → [gforgame](https://github.com/kingston-csj/gforgame)
 - SpringBoot-based practical MMORPG server project → [mmorpg Game Server](https://github.com/kingston-csj/mmorpg)
-  Independent backend management website for game operation and maintenance → [gGamekeeper Admin System](https://github.com/kingston-csj/gamekeeper)
-  Beyond game development, it can also build other network applications such as real-time chat systems → [QQ-like IM Application](https://github.com/kingston-csj/im)
+- Independent backend management website for game operation and maintenance → [gGamekeeper Admin System](https://github.com/kingston-csj/gamekeeper)
+- Beyond game development, it can also build other network applications such as real-time chat systems → [QQ-like IM Application](https://github.com/kingston-csj/im)
 
 Module Structure
 
